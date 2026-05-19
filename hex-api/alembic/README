@@ -1,0 +1,18 @@
+Generic single-database configuration.
+
+### Useful commands
+
+´´´bash
+# init alembic migration project 
+alembic init alembic
+´´´
+
+´´´bash
+# generate a migration based on models changes 
+alembic revision --autogenerate -m "message"
+´´´
+[upgrade/downgrade](https://alembic.sqlalchemy.org/en/latest/tutorial.html#relative-migration-identifiers)
+´´´bash
+alembic upgrade head
+´´´
+

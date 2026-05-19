@@ -14,8 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#
-
+# Routers
 app.include_router(pingRouter, tags=["Health check"])
 
 @app.get("/")
