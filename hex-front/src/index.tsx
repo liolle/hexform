@@ -2,10 +2,13 @@
 import './index.css';
 import { render } from 'solid-js/web';
 import 'solid-devtools';
+import State from "~/state/state"
 
 import App from './App';
+import AppState from '~/state/state';
 
 const root = document.getElementById('root');
+
 
 if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   throw new Error(

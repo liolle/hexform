@@ -15,6 +15,17 @@
 
     // Type Checking & Safety
     "strict": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./src/*"],
+      "@components/*": ["./src/components/*"]
+    },
+    "ts-node": { // Configuration for ts-node
+      "transpileOnly": true, // Speeds up development
+      "require": ["tsconfig-paths/register"] // Enable path aliases in ts-node
+    },
+    "include": ["src/**/*"], // Include all files in the `src` directory
+    "exclude": ["node_modules"] // Exclude `node_modules` from compilation
   }
 }
