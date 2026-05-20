@@ -1,2 +1,3 @@
 from .ping import router as pingRouter 
-__all__ = ["pingRouter"]
+from .authetication import router as authRouter
+__all__ = ["pingRouter", "authRouter"]

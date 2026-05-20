@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import pingRouter
+from routers import pingRouter, authRouter
 
 app = FastAPI(title="HexForm API", version="0.0.1")
 
@@ -16,6 +16,7 @@ app.add_middleware(
 
 # Routers
 app.include_router(pingRouter, tags=["Health check"])
+app.include_router(authRouter, tags=["Authentication"])
 
 @app.get("/")
 def root():
