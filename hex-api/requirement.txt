@@ -3,3 +3,5 @@ psycopg[binary]
 python-dotenv
 fastapi[standard]
 alembic
+passlib
+pyjwt
