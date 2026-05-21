@@ -1,8 +1,9 @@
 @import 'tailwindcss';
-
+@plugin "daisyui";
+/*
 @plugin "daisyui/theme" {
   name: "silk";
-  default: false;
+  default: true;
   prefersdark: false;
   color-scheme: "light";
   --color-base-100: oklch(97% 0.0035 67.78);
@@ -33,4 +34,12 @@
   --border: 2px;
   --depth: 1;
   --noise: 0;
+}
+*/
+
+
+.btn:disabled {
+  background: #9ca3af;  /* Gray background */
+  cursor: not-allowed;
+  opacity: 0.5;
 }

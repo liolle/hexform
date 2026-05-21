@@ -25,6 +25,7 @@ class Users(dbBase):
 
     __table_args__ = (
         UniqueConstraint("nickname", name="uk_users_nickname"),
+        UniqueConstraint("username", name="uk_users_username"),
     )
 
     def __repr__(self) -> str:
