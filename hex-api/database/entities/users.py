@@ -4,12 +4,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import dbBase
 
-'''
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from database import *
-'''
+    from database import Surveys
 
 class Users(dbBase):
 
@@ -22,6 +20,16 @@ class Users(dbBase):
     # Credentials
     username: Mapped[str] = mapped_column(String(50), nullable=False)
     password: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    #relations
+    crated_surveys: Mapped[list["Surveys"]] = relationship(
+        "Surveys",
+        back_populates="owner",
+        foreign_keys="Surveys.owner_id",
+        cascade="all, delete-orphan"
+    )
+
+    # TODO add response relation
 
     __table_args__ = (
         UniqueConstraint("nickname", name="uk_users_nickname"),
