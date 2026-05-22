@@ -8,7 +8,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from database import Questions, Users
+    from database import Questions, Users,SurveyKeys, Submissions
 
 class SurveyState(Enum):
     CREATED = 'CREATED'
@@ -31,24 +31,29 @@ class Surveys(dbBase):
     created_at: Mapped[datetime] = mapped_column(default=datetime.now())
 
     # relationship
-
-    # questions 
     questions : Mapped[list["Questions"]] = relationship(
         "Questions",
         back_populates="survey",
         foreign_keys="Questions.survey_id"
     )
 
-    # owner
     owner : Mapped["Users"] = relationship(
         "Users",
-        back_populates="crated_surveys",
+        back_populates="created_surveys",
         foreign_keys=[owner_id],
         uselist=False
     ) 
 
-    __table_args__ = (
+    keys: Mapped[list["SurveyKeys"]] = relationship(
+        "SurveyKeys",
+        foreign_keys="SurveyKeys.survey_id",
+        back_populates="survey"
+    )
 
+    submissions: Mapped[list["Submissions"]] = relationship(
+        "Submissions", 
+        foreign_keys="Submissions.survey_id",
+        back_populates="survey"
     )
 
 

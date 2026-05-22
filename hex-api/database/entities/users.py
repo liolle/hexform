@@ -7,7 +7,7 @@ from database import dbBase
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from database import Surveys
+    from database import Surveys, Submissions
 
 class Users(dbBase):
 
@@ -22,14 +22,18 @@ class Users(dbBase):
     password: Mapped[str] = mapped_column(String(100), nullable=False)
 
     #relations
-    crated_surveys: Mapped[list["Surveys"]] = relationship(
+    created_surveys: Mapped[list["Surveys"]] = relationship(
         "Surveys",
         back_populates="owner",
         foreign_keys="Surveys.owner_id",
-        cascade="all, delete-orphan"
     )
 
-    # TODO add response relation
+    submissions: Mapped[list["Submissions"]] = relationship(
+        "Submissions",
+        foreign_keys="Submissions.user_id",
+        back_populates="user"
+    )
+
 
     __table_args__ = (
         UniqueConstraint("nickname", name="uk_users_nickname"),

@@ -4,7 +4,7 @@ from sqlalchemy import CheckConstraint, String, Enum as EnumSQL, JSON, ForeignKe
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import dbBase
 from enum import Enum
-from typing import Optional, Any, Dict
+from typing import Any, Dict
 
 '''
 text
@@ -18,7 +18,7 @@ multi_pick
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from database import Surveys
+    from database import Surveys, Answers
 
 class QType(Enum):
     TEXT = 'TEXT'
@@ -44,7 +44,14 @@ class Questions(dbBase):
     survey: Mapped["Surveys"] = relationship(
         "Surveys",
         foreign_keys=[survey_id],
-        back_populates="questions"
+        back_populates="questions",
+        uselist=False
+    )
+
+    answers: Mapped[list["Answers"]] = relationship(
+        "Answers",
+        foreign_keys="Answers.question_id",
+        back_populates="question"
     )
 
     __table_args__ = (
