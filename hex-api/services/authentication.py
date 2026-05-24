@@ -64,7 +64,7 @@ def generate_token(claims:dict[str,Any])->str:
     token = jwt.encode(final_claims, SECRET_KEY, algorithm="HS256")
     return token
 
-def verify_token(token)->Result:
+def verify_token(token:str)->Result:
 
     verify_options:Options = {
         "verify_signature": True,

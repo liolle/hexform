@@ -22,7 +22,7 @@ class Surveys(dbBase):
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(String(1000))
-    state: Mapped[SurveyState] = mapped_column(EnumSQL(SurveyState, name='type'), nullable=False,default=SurveyState.CREATED)
+    state: Mapped[SurveyState] = mapped_column(EnumSQL(SurveyState, name='state'), nullable=False,default=SurveyState.CREATED)
 
     owner_id: Mapped[str] = mapped_column(String(32),
                                           ForeignKey("users.id",ondelete="CASCADE",onupdate="CASCADE"),
@@ -55,6 +55,9 @@ class Surveys(dbBase):
         foreign_keys="Submissions.survey_id",
         back_populates="survey"
     )
+
+    def __repr__(self) -> str:
+        return f"{self.id} : {self.title} : {self.state}"
 
 
 
