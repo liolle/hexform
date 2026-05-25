@@ -1,4 +1,6 @@
+import { SurveyData, SurveyS } from "~/services/surveyService";
 import { HomeTabType, SetStore, Store, UserData } from "./store"
+import { AuthS } from "~/services/services";
 
 function decodeJWT(token: string) {
   try {
@@ -60,8 +62,6 @@ class State {
       this.#setClaims(this.#accessToken)
       SetStore("activeHomeTab", this.#activeHomeTab)
       SetStore("activeDashboardSurveyId", this.#activeDashboardSurveyId)
-
-      console.log(this)
 
     } catch (error) {
       console.log("Failed to load state")
@@ -175,6 +175,34 @@ class State {
     SetStore("activeDashboardSurveyId", id)
 
     this.#save()
+  }
+
+  async updateDashboardSurveys() {
+
+    let res = await SurveyS.getCreateSurveys(true)
+    if (res.result.status == 401) {
+      AuthS.logout()
+    }
+
+    let data = res.result.content.get("surveys") as any[]
+    if (!data) {
+      return
+    }
+
+    let svs = data.map(val => {
+
+      return {
+        id: val["id"],
+        title: val["title"],
+        description: val["description"],
+        owner_id: val["owner_id"],
+        is_public: val["is_public"],
+        created_at: val["created_at"],
+      } as SurveyData
+    })
+
+
+    SetStore("dashboardSurveys", svs)
   }
 
 }

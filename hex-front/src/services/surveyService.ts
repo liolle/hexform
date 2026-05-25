@@ -25,6 +25,16 @@ class SurveyService {
     return response
   }
 
+  async createSurvey(data: object): Promise<ClientResponse> {
+    let response = await Client.post(`surveys`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+      .withBody(data)
+      .send()
+
+    return response
+  }
 
 }
 

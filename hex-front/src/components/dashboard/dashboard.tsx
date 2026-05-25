@@ -5,12 +5,14 @@ import { AuthS } from "~/services/services"
 import { SurveyData, SurveyS } from "~/services/surveyService"
 import AppState from "~/state/state"
 import { Store } from "~/state/store"
+import CreateSurveyDialog from "./createSurveyDialog"
 
-const [surveys, setSurveys] = createSignal<SurveyData[]>()
+//const [surveys, setSurveys] = createSignal<SurveyData[]>()
 
 const Dashboard: Component = () => {
 
   createEffect(async () => {
+    /*
     let res = await SurveyS.getCreateSurveys(true)
     if (res.result.status == 401) {
       AuthS.logout()
@@ -34,11 +36,15 @@ const Dashboard: Component = () => {
     })
 
     setSurveys(svs)
+    */
+    AppState.updateDashboardSurveys()
   })
 
 
   return (
     <div class="flex-1 p-[16px] flex flex-col gap-4">
+
+      <CreateSurveyDialog />
       <DashboardPanel />
 
       <Switch>
@@ -57,7 +63,7 @@ const Dashboard: Component = () => {
 
 const DashboardPanel: Component = () => {
 
-  let activeSurvey = () => surveys()?.find(v => v.id == Store.activeDashboardSurveyId)
+  let activeSurvey = () => Store.dashboardSurveys?.find(v => v.id == Store.activeDashboardSurveyId)
 
   return (
     <div class="h-12 bg-transparent border-b-1 border-base-100 flex">
@@ -98,7 +104,7 @@ const DashboardBody = () => {
   return (
 
     <div class="flex-1 flex bg-transparent flex flex-col gap-2 ">
-      <For each={surveys()}>
+      <For each={Store.dashboardSurveys}>
         {(item, index) =>
           <SurveyCard data={item} />
         }
@@ -111,11 +117,22 @@ const DashboardBody = () => {
 
 const DashboardFooter: Component = () => {
 
+  const openSurveyModal = () => {
+    let dialog = document.getElementById('create_survey_modal') as HTMLDialogElement
+    if (!dialog) {
+      return
+    }
+
+    dialog.showModal()
+  }
+
   return (
     <div class="h-12 bg-transparent flex items-center justify-end">
       <Switch>
         <Match when={!Store.activeDashboardSurveyId}>
-          <button class="btn btn-primary rounded-[.5rem]">
+          <button class="btn btn-primary rounded-[.5rem]"
+            onclick={openSurveyModal}
+          >
             <span class="text-content text-sm font-medium">
               Create survey
             </span>
@@ -130,6 +147,7 @@ const DashboardFooter: Component = () => {
           </button>
         </Match>
       </Switch>
+
 
     </div>
   )
@@ -161,8 +179,6 @@ const SurveyCard = (props: SurveysCardProps) => {
     </div>
   )
 }
-
-
 
 
 export default Dashboard

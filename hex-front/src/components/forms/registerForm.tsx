@@ -104,7 +104,7 @@ const RegisterForm: Component = () => {
   )
 }
 
-export interface FormInputType {
+interface FormInputType {
   type: string
   name: string
   required: boolean

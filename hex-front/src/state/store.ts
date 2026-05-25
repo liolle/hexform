@@ -1,4 +1,5 @@
 import { createStore } from "solid-js/store";
+import { SurveyData } from "~/services/surveyService";
 
 export interface UserData {
   nickname: string
@@ -15,12 +16,14 @@ export interface StoreType {
   user: UserData | undefined
   activeHomeTab: HomeTabType
   activeDashboardSurveyId: string
+  dashboardSurveys: SurveyData[]
 }
 
 export const [Store, SetStore] = createStore<StoreType>({
   user: undefined,
   activeHomeTab: HomeTabType.DASHBOARD,
-  activeDashboardSurveyId: ""
+  activeDashboardSurveyId: "",
+  dashboardSurveys: []
 })
 
 

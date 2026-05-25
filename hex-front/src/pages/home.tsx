@@ -1,7 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import { Component, createEffect, Switch, Match } from "solid-js";
 import { unwrap } from "solid-js/store";
-import Dashboard from "~/components/dashboard";
+import Dashboard from "~/components/dashboard/dashboard";
 import Navbar from "~/components/navbar";
 import Sidebar from "~/components/sidebar";
 import Surveys from "~/components/surveys";
