@@ -12,7 +12,6 @@ const LoginForm: Component = () => {
 
   const handleSubmit = async (e: Event) => {
 
-    console.log("here")
     e.preventDefault();
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     let data = {
