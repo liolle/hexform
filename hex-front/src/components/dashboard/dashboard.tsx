@@ -6,6 +6,7 @@ import { SurveyData, SurveyS } from "~/services/surveyService"
 import AppState from "~/state/state"
 import { Store } from "~/state/store"
 import CreateSurveyDialog from "./createSurveyDialog"
+import DeleteSurveyDialog from "./deleteSurveyDialog"
 
 //const [surveys, setSurveys] = createSignal<SurveyData[]>()
 
@@ -45,6 +46,7 @@ const Dashboard: Component = () => {
     <div class="flex-1 p-[16px] flex flex-col gap-4">
 
       <CreateSurveyDialog />
+      <DeleteSurveyDialog />
       <DashboardPanel />
 
       <Switch>
@@ -117,8 +119,17 @@ const DashboardBody = () => {
 
 const DashboardFooter: Component = () => {
 
-  const openSurveyModal = () => {
+  const openCreateSurveyModal = () => {
     let dialog = document.getElementById('create_survey_modal') as HTMLDialogElement
+    if (!dialog) {
+      return
+    }
+
+    dialog.showModal()
+  }
+
+  const openDeleteSurveyModal = () => {
+    let dialog = document.getElementById('delete_survey_modal') as HTMLDialogElement
     if (!dialog) {
       return
     }
@@ -131,7 +142,7 @@ const DashboardFooter: Component = () => {
       <Switch>
         <Match when={!Store.activeDashboardSurveyId}>
           <button class="btn btn-primary rounded-[.5rem]"
-            onclick={openSurveyModal}
+            onclick={openCreateSurveyModal}
           >
             <span class="text-content text-sm font-medium">
               Create survey
@@ -140,7 +151,7 @@ const DashboardFooter: Component = () => {
         </Match>
 
         <Match when={!!Store.activeDashboardSurveyId}>
-          <button class="btn btn-error rounded-[.5rem]">
+          <button class="btn btn-error rounded-[.5rem]" onclick={openDeleteSurveyModal}>
             <span class="text-content text-sm font-medium">
               Delete survey
             </span>

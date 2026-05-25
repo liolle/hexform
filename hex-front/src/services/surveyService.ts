@@ -36,6 +36,16 @@ class SurveyService {
     return response
   }
 
+  async deleteSurvey(id: string): Promise<ClientResponse> {
+    let response = await Client.delete(`surveys/${id}`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+      .send()
+
+    return response
+  }
+
 }
 
 

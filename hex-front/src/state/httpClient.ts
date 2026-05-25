@@ -7,6 +7,7 @@ enum RequestMethod {
   "POST" = "POST",
   "GET" = "GET",
   "PATCH" = "PATCH",
+  "DELETE" = "DELETE",
   "PUT" = "PUT"
 }
 
@@ -127,6 +128,12 @@ class HttpClient {
   patch(path: string) {
 
     return new ClientRequest(`${this.#baseURL}/${path}`, RequestMethod.PATCH)
+  }
+
+  delete(path: string) {
+
+    return new ClientRequest(`${this.#baseURL}/${path}`, RequestMethod.DELETE)
+
   }
 }
 
