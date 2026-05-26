@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
+from fastapi import  status
 from datetime import datetime, timezone, timedelta
 #from typing import Optional
 #from jose import JWTError, jwt
@@ -89,33 +90,33 @@ def verify_token(token:str)->Result:
 
     except ExpiredSignatureError:
         # Token has expired
-        return Result(False, keys={"reason": "Token has expired. Please login again."})
+        return Result(False, keys={"reason": "Token has expired. Please login again.", "status_code" : status.HTTP_401_UNAUTHORIZED })
 
     except ImmatureSignatureError:
         # Token not yet valid (nbf claim is in the future)
-        return Result(False, keys={"reason": "Token is not yet valid."})
+        return Result(False, keys={"reason": "Token is not yet valid.", "status_code" : status.HTTP_401_UNAUTHORIZED })
 
     except InvalidSignatureError:
         # Signature doesn't match
-        return Result(False, keys={"reason": "Invalid token signature. Token may have been tampered with."})
+        return Result(False, keys={"reason": "Invalid token signature. Token may have been tampered with.", "status_code" : status.HTTP_401_UNAUTHORIZED })
 
     except MissingRequiredClaimError :
         # Required claim is missing (e.g., exp, iat, nbf)
-        return Result(False, keys={"reason": "Token is malformed: missing required claims."})
+        return Result(False, keys={"reason": "Token is malformed: missing required claims.", "status_code" : status.HTTP_401_UNAUTHORIZED })
 
     except InvalidKeyError:
         # Cryptographic key is invalid
-        return Result(False, keys={"reason": "Authentication configuration error."})
+        return Result(False, keys={"reason": "Authentication configuration error.", "status_code" : status.HTTP_401_UNAUTHORIZED })
 
     except DecodeError:
         # Token can't be decoded (malformed)
-        return Result(False, keys={"reason": "Token is malformed."})
+        return Result(False, keys={"reason": "Token is malformed.", "status_code" : status.HTTP_401_UNAUTHORIZED })
 
     except InvalidTokenError:
         # Generic invalid token error (parent of many above)
-        return Result(False, keys={"reason": "Invalid token."})
+        return Result(False, keys={"reason": "Invalid token.", "status_code" : status.HTTP_401_UNAUTHORIZED })
     except Exception as e:
-        return Result(False, keys={"reason": "Invalid token."})
+        return Result(False, keys={"reason": "Invalid token.", "status_code" : status.HTTP_401_UNAUTHORIZED })
 
 error_mapping = {
     "uk_users_nickname": "Nickname already taken",
