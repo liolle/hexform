@@ -1,6 +1,6 @@
 import { Component, Match, Switch } from "solid-js"
 import { createStore } from "solid-js/store";
-import z, { flattenError } from "zod";
+import z from "zod";
 import { SurveyS } from "~/services/surveyService";
 import AppState from "~/state/state";
 
@@ -85,7 +85,7 @@ const CreateSurveyDialog: Component = () => {
   return (
     <dialog id="create_survey_modal" class="modal modal-bottom sm:modal-middle">
       <div class="modal-box relative">
-        <button class="btn btn-outline rounded-full btn-error rounded-[.5rem] absolute top-1 right-1" onclick={closeSurveyModal}>
+        <button class="btn btn-outline rounded-full btn-error rounded-[.5rem] absolute p-0 w-8 h-8 top-1 right-1" onclick={closeSurveyModal}>
           <span class="text-xs">X</span>
         </button>
         <form ref={formRef} onsubmit={handleSubmit} >

@@ -4,7 +4,7 @@ import { unwrap } from "solid-js/store";
 import Dashboard from "~/components/dashboard/dashboard";
 import Navbar from "~/components/navbar";
 import Sidebar from "~/components/sidebar";
-import Surveys from "~/components/surveys";
+import PublicSurveys from "~/components/surveys/publicSurveys";
 import { HomeTabType, Store } from "~/state/store";
 
 const HomePage: Component = () => {
@@ -31,7 +31,7 @@ const HomePage: Component = () => {
           </Match>
 
           <Match when={Store.activeHomeTab == HomeTabType.SURVEYS}>
-            <Surveys />
+            <PublicSurveys />
           </Match>
         </Switch>
       </div>
