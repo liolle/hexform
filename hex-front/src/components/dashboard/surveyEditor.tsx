@@ -1,18 +1,22 @@
 import { SurveyData } from "~/services/surveyService"
-import { createEffect, createSignal, For, Match, Setter, Switch } from "solid-js"
+import { For, Match, Setter, Switch } from "solid-js"
 import { Store } from "~/state/store"
 import AppState from "~/state/state"
 import { SurveyQuestion, SurveyQuestionType } from "~/types"
 import { IoTrashBinOutline } from "solid-icons/io"
-import { createStore } from "solid-js/store"
-import { title } from "node:process"
-import { boolean } from "zod"
 
 interface SurveyEditorProps {
   survey: SurveyData | undefined
 }
 
-let focusedElement: HTMLInputElement | undefined
+const deleteQuestion = (surveyId: string, questionId: string) => {
+  AppState.removeSurveyQuestion(surveyId, questionId)
+}
+
+interface QuestionCardProps {
+  surveyId: string,
+  question: SurveyQuestion,
+}
 
 const SurveyEditor = (props: SurveyEditorProps) => {
 
@@ -25,8 +29,6 @@ const SurveyEditor = (props: SurveyEditorProps) => {
       </div>
     )
   }
-
-
 
   return (
     <div class="flex flex-col gap-4 relative overflow-y-auto" >
@@ -43,31 +45,24 @@ const SurveyEditor = (props: SurveyEditorProps) => {
   )
 }
 
-
-interface QuestionCardProps {
-  surveyId: string,
-  question: SurveyQuestion,
-  questionSetter?: Setter<SurveyQuestion[]>
-}
-
 const QuestionCard = (props: QuestionCardProps) => {
 
   return (
     <div>
       <Switch>
         <Match when={props.question.type == SurveyQuestionType.TEXT}>
-          <TextQuestionCard surveyId={props.surveyId} question={props.question} questionSetter={props.questionSetter} />
+          <TextQuestionCard surveyId={props.surveyId} question={props.question} />
         </Match>
         <Match when={props.question.type == SurveyQuestionType.BOOL}>
-          <BoolQuestionCard surveyId={props.surveyId} question={props.question} questionSetter={props.questionSetter} />
+          <BoolQuestionCard surveyId={props.surveyId} question={props.question} />
         </Match>
 
         <Match when={props.question.type == SurveyQuestionType.NUMBER}>
-          <NumberQuestionCard surveyId={props.surveyId} question={props.question} questionSetter={props.questionSetter} />
+          <NumberQuestionCard surveyId={props.surveyId} question={props.question} />
         </Match>
 
         <Match when={props.question.type == SurveyQuestionType.RATING}>
-          <RatingQuestionCard surveyId={props.surveyId} question={props.question} questionSetter={props.questionSetter} />
+          <RatingQuestionCard surveyId={props.surveyId} question={props.question} />
         </Match>
       </Switch>
     </div>
@@ -85,23 +80,28 @@ const debounce = (fn: Function, delay: number) => {
 
 const TextQuestionCard = (props: QuestionCardProps) => {
 
-  const debouncedSave = debounce((question: SurveyQuestion) => {
-    AppState.upsertSurveyQuestion(props.surveyId, props.question.id, question, false);
+  let question = AppState.surveyQuestions[props.surveyId].find(v => v.id == props.question.id)
+  let q: SurveyQuestion = question ?? props.question
+
+  const debouncedSave = debounce(() => {
+    AppState.upsertSurveyQuestion(props.surveyId, props.question.id, q, false);
   }, 500);
 
   const handleInput = (e: InputEvent) => {
 
     const target = e.target as HTMLInputElement;
     const newValue = target.value;
+    switch (target.name) {
+      case "title":
+        q.title = newValue
+        break;
 
-    debouncedSave({ ...props.question, ...{ [target.name]: newValue } }, target);
+      default:
+        break;
+    }
+
+    debouncedSave();
   }
-
-  const deleteQuestion = () => {
-    AppState.removeSurveyQuestion(props.surveyId, props.question.id)
-  }
-
-  let question = AppState.surveyQuestions[props.surveyId].find(v => v.id == props.question.id)
 
   return (
     <div class=" border-b-2 rounded-[.25rem] p-2 border-base-100 flex flex-col gap-2">
@@ -117,7 +117,7 @@ const TextQuestionCard = (props: QuestionCardProps) => {
         onInput={handleInput}
         placeholder={"Question ?"} />
       <div class="flex justify-end">
-        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8" onclick={deleteQuestion}>
+        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8" onclick={() => deleteQuestion(props.surveyId, props.question.id)}>
           <IoTrashBinOutline />
         </button>
       </div>
@@ -127,38 +127,72 @@ const TextQuestionCard = (props: QuestionCardProps) => {
 
 }
 
+const AllowDigitOnly = (e: KeyboardEvent) => {
+
+  const allowedKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+    'Home', 'End'
+  ];
+
+  // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+  if (e.ctrlKey && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+    return;
+  }
+
+  // Allow: numbers
+  if (/^[0-9]$/.test(e.key)) {
+    return;
+  }
+
+
+  // Block everything else
+  if (!allowedKeys.includes(e.key)) {
+    e.preventDefault();
+  }
+
+}
+
+interface RatingConfig {
+  max: number
+}
+
 const RatingQuestionCard = (props: QuestionCardProps) => {
 
-  const deleteQuestion = () => {
-    AppState.removeSurveyQuestion(props.surveyId, props.question.id)
+  let question = AppState.surveyQuestions[props.surveyId].find(v => v.id == props.question.id)
+  let q: SurveyQuestion = question ?? props.question
+  let config: RatingConfig = q.config ? JSON.parse(q.config) : {};
+
+  const debouncedSave = debounce(() => {
+    AppState.upsertSurveyQuestion(props.surveyId, props.question.id, q, false);
+  }, 500);
+
+
+  const handleInput = (e: InputEvent) => {
+
+    const target = e.target as HTMLInputElement;
+    const newValue = target.value;
+
+    try {
+      switch (target.name) {
+        case "title":
+          q.title = newValue
+          break;
+        case "max":
+          config.max = newValue == "" ? 5 : parseInt(newValue)
+          q.config = JSON.stringify(config)
+          break;
+
+        default:
+          break;
+      }
+
+    } catch (error) {
+
+    }
+
+    debouncedSave();
   }
-
-  const AllowDigitOnly = (e: KeyboardEvent) => {
-
-    const allowedKeys = [
-      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
-      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-      'Home', 'End'
-    ];
-
-    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-    if (e.ctrlKey && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
-      return;
-    }
-
-    // Allow: numbers
-    if (/^[0-9]$/.test(e.key)) {
-      return;
-    }
-
-
-    // Block everything else
-    if (!allowedKeys.includes(e.key)) {
-      e.preventDefault();
-    }
-
-  }
-
 
   return (
     <div class=" border-b-2 rounded-[.25rem] p-2 border-base-100 flex flex-col gap-2">
@@ -167,9 +201,11 @@ const RatingQuestionCard = (props: QuestionCardProps) => {
       </div>
       <input
         type="text"
-        name=""
+        name="title"
+        value={question?.title ?? ""}
         class="input rounded-[.5rem] focus:outline-0"
         required={true}
+        onInput={handleInput}
         placeholder={"Question ?"} />
 
       <div class="flex justify-between">
@@ -178,51 +214,70 @@ const RatingQuestionCard = (props: QuestionCardProps) => {
 
             <input
               type="number"
-              name=""
+              name="max"
+              value={config?.max ?? ""}
               class="input rounded-[.5rem] focus:outline-0 w-24"
               required={true}
               onkeydown={AllowDigitOnly}
+              onInput={handleInput}
               placeholder={"max"} />
           </fieldset>
 
         </div>
-        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8 place-self-end" onclick={deleteQuestion}>
+        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8 place-self-end" onclick={() => deleteQuestion(props.surveyId, props.question.id)}>
           <IoTrashBinOutline />
         </button>
       </div>
-
     </div>
   )
 }
 
+interface NumberConfig {
+  min: number
+  max: number
+}
+
 const NumberQuestionCard = (props: QuestionCardProps) => {
 
-  const deleteQuestion = () => {
-    AppState.removeSurveyQuestion(props.surveyId, props.question.id)
-  }
+  let question = AppState.surveyQuestions[props.surveyId].find(v => v.id == props.question.id)
+  let q: SurveyQuestion = question ?? props.question
+  let config: NumberConfig = q.config ? JSON.parse(q.config) : {};
 
-  const AllowDigitOnly = (e: KeyboardEvent) => {
+  const debouncedSave = debounce(() => {
+    AppState.upsertSurveyQuestion(props.surveyId, props.question.id, q, false);
+  }, 500);
 
-    const allowedKeys = [
-      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
-      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-      'Home', 'End'
-    ];
 
-    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-    if (e.ctrlKey && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
-      return;
+  const handleInput = (e: InputEvent) => {
+
+    const target = e.target as HTMLInputElement;
+    const newValue = target.value;
+
+    try {
+      switch (target.name) {
+        case "title":
+          q.title = newValue
+          break;
+        case "max":
+          config.max = newValue == "" ? 0 : parseInt(newValue)
+          q.config = JSON.stringify(config)
+          break;
+
+        case "min":
+          config.min = newValue == "" ? 0 : parseInt(newValue)
+          q.config = JSON.stringify(config)
+          break;
+
+
+        default:
+          break;
+      }
+
+    } catch (error) {
+
     }
 
-    // Allow: numbers
-    if (/^[0-9]$/.test(e.key)) {
-      return;
-    }
-
-    // Block everything else
-    if (!allowedKeys.includes(e.key)) {
-      e.preventDefault();
-    }
+    debouncedSave();
   }
 
 
@@ -233,9 +288,11 @@ const NumberQuestionCard = (props: QuestionCardProps) => {
       </div>
       <input
         type="text"
-        name=""
+        name="title"
+        value={question?.title ?? ""}
         class="input rounded-[.5rem] focus:outline-0"
         required={true}
+        onInput={handleInput}
         placeholder={"Question ?"} />
 
       <div class="flex justify-between">
@@ -243,23 +300,28 @@ const NumberQuestionCard = (props: QuestionCardProps) => {
           <fieldset class="fieldset  flex gap-[2rem] ">
             <input
               type="number"
-              name=""
+              name="min"
+              value={config?.min ?? ""}
               class="input rounded-[.5rem] focus:outline-0 w-24"
+              onkeydown={AllowDigitOnly}
               required={true}
+              onInput={handleInput}
               placeholder={"min"} />
 
             <input
               type="number"
-              name=""
+              name="max"
+              value={config?.max ?? ""}
               class="input rounded-[.5rem] focus:outline-0 w-24"
               required={true}
               onkeydown={AllowDigitOnly}
+              onInput={handleInput}
               placeholder={"max"} />
 
           </fieldset>
 
         </div>
-        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8 place-self-end" onclick={deleteQuestion}>
+        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8 place-self-end" onclick={() => deleteQuestion(props.surveyId, props.question.id)}>
           <IoTrashBinOutline />
         </button>
       </div>
@@ -268,10 +330,48 @@ const NumberQuestionCard = (props: QuestionCardProps) => {
   )
 }
 
+interface BoolConfig {
+  trueLabel: string
+  falseLabel: string
+}
+
 const BoolQuestionCard = (props: QuestionCardProps) => {
 
-  const deleteQuestion = () => {
-    AppState.removeSurveyQuestion(props.surveyId, props.question.id)
+  let question = AppState.surveyQuestions[props.surveyId].find(v => v.id == props.question.id)
+  let q: SurveyQuestion = question ?? props.question
+  let config: BoolConfig = q.config ? JSON.parse(q.config) : {};
+
+  const debouncedSave = debounce(() => {
+    AppState.upsertSurveyQuestion(props.surveyId, props.question.id, q, false);
+  }, 500);
+
+
+  const handleInput = (e: InputEvent) => {
+
+    const target = e.target as HTMLInputElement;
+    const newValue = target.value;
+
+    try {
+      switch (target.name) {
+        case "title":
+          q.title = newValue
+          break;
+        case "trueLabel":
+          config.trueLabel = newValue
+          q.config = JSON.stringify(config)
+          break;
+
+        case "falseLabel":
+          config.falseLabel = newValue
+          q.config = JSON.stringify(config)
+          break;
+      }
+
+    } catch (error) {
+
+    }
+
+    debouncedSave();
   }
 
 
@@ -282,8 +382,10 @@ const BoolQuestionCard = (props: QuestionCardProps) => {
       </div>
       <input
         type="text"
-        name=""
+        name="title"
         class="input rounded-[.5rem] focus:outline-0"
+        value={question?.title ?? ""}
+        onInput={handleInput}
         required={true}
         placeholder={"Question ?"} />
 
@@ -292,23 +394,26 @@ const BoolQuestionCard = (props: QuestionCardProps) => {
           <fieldset class="fieldset  flex gap-[2rem] ">
             <input
               type="text"
-              name=""
+              name="trueLabel"
               class="input rounded-[.5rem] focus:outline-0 w-36"
+              value={config?.trueLabel ?? ""}
+              onInput={handleInput}
               required={true}
               placeholder={"True lable"} />
 
             <input
               type="text"
-              name=""
+              name="falseLabel"
               class="input rounded-[.5rem] focus:outline-0 w-36"
+              value={config?.falseLabel ?? ""}
               required={true}
+              onInput={handleInput}
               placeholder={"False label"} />
 
           </fieldset>
 
-
         </div>
-        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8 place-self-end" onclick={deleteQuestion}>
+        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8 place-self-end" onclick={() => deleteQuestion(props.surveyId, props.question.id)}>
           <IoTrashBinOutline />
         </button>
       </div>

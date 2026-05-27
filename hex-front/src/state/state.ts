@@ -290,6 +290,7 @@ class State {
   };
 
   upsertSurveyQuestion(surveyId: string, questionId: string, question: SurveyQuestion, updateStore = true) {
+    question.last_modified = new Date(Date.now())
 
     if (updateStore) {
 

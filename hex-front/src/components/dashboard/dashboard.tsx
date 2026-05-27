@@ -1,7 +1,5 @@
 import { BsLockFill } from "solid-icons/bs"
-import { IoArrowBack } from "solid-icons/io"
 import { Component, createEffect, createSignal, For, Switch, Match, Show } from "solid-js"
-import { AuthS } from "~/services/services"
 import { SurveyData, SurveyS, SurveyState } from "~/services/surveyService"
 import AppState from "~/state/state"
 import { Store } from "~/state/store"

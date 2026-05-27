@@ -44,7 +44,7 @@ const DashboardFooter: Component = () => {
           <div class="flex flex-1 justify-between">
             <button class="btn btn-info rounded-[.5rem]" onclick={publishSurvey}>
               <span class="text-content text-sm font-medium">
-                Pubish survey
+                Publish survey
               </span>
             </button>
             <button class="btn btn-error rounded-[.5rem]" onclick={openDeleteSurveyModal}>
