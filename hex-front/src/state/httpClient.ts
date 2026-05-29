@@ -7,12 +7,13 @@ enum RequestMethod {
   "POST" = "POST",
   "GET" = "GET",
   "PATCH" = "PATCH",
+  "DELETE" = "DELETE",
   "PUT" = "PUT"
 }
 
 export interface ClientResponseType {
   status: number
-  content: Map<string, string>
+  content: Map<string, any>
 }
 
 export class ClientResponse {
@@ -79,7 +80,7 @@ export class ClientRequest {
       body: this.#body
     }
 
-    let res: Map<string, string> = new Map()
+    let res: Map<string, any> = new Map()
 
     const response = await fetch(this.#url, options);
 
@@ -127,6 +128,12 @@ class HttpClient {
   patch(path: string) {
 
     return new ClientRequest(`${this.#baseURL}/${path}`, RequestMethod.PATCH)
+  }
+
+  delete(path: string) {
+
+    return new ClientRequest(`${this.#baseURL}/${path}`, RequestMethod.DELETE)
+
   }
 }
 

@@ -1,4 +1,22 @@
-import { createSignal } from "solid-js"
+import { SurveyData, SurveyS } from "~/services/surveyService";
+import { HomeTabType, SetStore, Store, UserData } from "./store"
+import { AuthS } from "~/services/services";
+import { SurveyQuestion } from "~/types";
+
+function decodeJWT(token: string) {
+  try {
+    const [header, payload, signature] = token.split('.');
+
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const decodedPayload = atob(base64);
+
+    return JSON.parse(decodedPayload);
+  } catch (error) {
+    console.error('Invalid JWT:', error);
+    return null;
+  }
+}
+
 
 class State {
   static NAME = "hexform-state"
@@ -6,16 +24,24 @@ class State {
   #loaded = false
   #connected = false
   #accessToken: string | undefined = undefined
+  #activeHomeTab: HomeTabType = HomeTabType.DASHBOARD
+  #activeDashboardSurveyId: string = ""
+  #surveyQuestions: Record<string, SurveyQuestion[]> = {}
+
 
   constructor() {
     // Load state from local storate
+
     this.#load()
   }
 
   #save() {
     localStorage.setItem(State.NAME, JSON.stringify({
-      connected: this.#connected,
-      accessToken: this.#accessToken,
+      connected: this.connected,
+      accessToken: this.accessToken,
+      activeHomeTab: this.activeHomeTab,
+      activeDashboardSurveyId: this.#activeDashboardSurveyId,
+      surveyQuestions: JSON.stringify(this.#surveyQuestions)
     }))
   }
 
@@ -32,11 +58,31 @@ class State {
 
       this.#connected = jsonState["connected"] ?? false
       this.#accessToken = jsonState["accessToken"]
+      this.#activeHomeTab = jsonState["activeHomeTab"]
+      this.#activeDashboardSurveyId = jsonState["activeDashboardSurveyId"]
+
+
+      this.#setClaims(this.#accessToken)
+      this.#reconciliateSureyQuestions(jsonState["surveyQuestions"])
+      SetStore("activeHomeTab", this.#activeHomeTab)
+      SetStore("activeDashboardSurveyId", this.#activeDashboardSurveyId)
 
     } catch (error) {
       console.log("Failed to load state")
+      console.log(error, state)
     }
     this.#loaded = true
+  }
+
+  #reconciliateSureyQuestions(storedQuestions: string) {
+
+    try {
+      const parsedQuestions: Record<string, SurveyQuestion[]> = storedQuestions ? JSON.parse(storedQuestions) : {};
+      this.#surveyQuestions = parsedQuestions
+      SetStore("surveyQuestions", parsedQuestions)
+    } catch (error) {
+
+    }
   }
 
 
@@ -45,8 +91,18 @@ class State {
     if (!this.#loaded) {
       this.#load()
     }
+
     return this.#accessToken
   }
+
+  get activeDashboardSurveyId(): string {
+    if (!this.#loaded) {
+      this.#load()
+    }
+
+    return this.#activeDashboardSurveyId
+  }
+
 
   get connected(): boolean {
     if (!this.#loaded) {
@@ -55,24 +111,209 @@ class State {
     return this.#connected
   }
 
+  get activeHomeTab(): HomeTabType {
+    if (!this.#loaded) {
+      this.#load()
+    }
+
+
+    return this.#activeHomeTab
+  }
+
+  get surveyQuestions(): Record<string, SurveyQuestion[]> {
+    if (!this.#loaded) {
+      this.#load()
+    }
+    return this.#surveyQuestions
+  }
+
+  #setClaims(token: string | undefined) {
+    if (token) {
+
+
+
+      try {
+        let data = decodeJWT(token)
+
+        if (data && data["id"] && data["id"]) {
+          let user: UserData = {
+            nickname: data["nickname"],
+            id: data["id"],
+            email: data["email"]
+          }
+
+          SetStore("user", user)
+        }
+
+      } catch (error) {
+
+        SetStore("user", undefined)
+      }
+
+    } else {
+
+      SetStore("user", undefined)
+    }
+  }
+
 
   // Setter
   set accessToken(token: string | undefined) {
+    if (this.accessToken == token) {
+      return
+    }
+
     this.#accessToken = token
+    this.#setClaims(token)
+    this.#save()
+  }
+
+  set activeHomeTab(tab: HomeTabType) {
+    if (this.activeHomeTab == tab) {
+      return
+    }
+
+    this.#activeHomeTab = tab
+    SetStore("activeHomeTab", this.#activeHomeTab)
     this.#save()
   }
 
   set connected(connected: boolean) {
+    if (this.connected == connected) {
+      return
+    }
+
     this.#connected = connected
+
+    this.#save()
+  }
+
+  set activeDashboardSurveyId(id: string) {
+    if (this.activeDashboardSurveyId == id) {
+      return
+    }
+
+    this.#activeDashboardSurveyId = id
+    SetStore("activeDashboardSurveyId", id)
+
+    this.#save()
+  }
+
+  async updateDashboardSurveys() {
+
+    let res = await SurveyS.getCreateSurveys()
+    if (res.result.status == 401) {
+      AuthS.logout()
+    }
+
+    let data = res.result.content.get("surveys") as any[]
+    if (!data) {
+      return
+    }
+
+    let svs = data.map(val => {
+
+      return {
+        id: val["id"],
+        title: val["title"],
+        description: val["description"],
+        owner_id: val["owner_id"],
+        is_public: val["is_public"],
+        created_at: val["created_at"],
+        state: val["state"]
+      } as SurveyData
+    })
+
+    SetStore("dashboardSurveys", svs)
+  }
+
+  async updatePublicSurveys() {
+
+    let res = await SurveyS.getPublicSurveys()
+    if (res.result.status == 401) {
+      AuthS.logout()
+    }
+
+    let data = res.result.content.get("surveys") as any[]
+    if (!data) {
+      return
+    }
+
+    let svs = data.map(val => {
+
+      return {
+        id: val["id"],
+        title: val["title"],
+        description: val["description"],
+        owner_id: val["owner_id"],
+        is_public: val["is_public"],
+        created_at: val["created_at"],
+        state: val["state"]
+      } as SurveyData
+    })
+
+    SetStore("publcSurveys", svs)
+  }
+
+
+  removeSurveyQuestion(surveyId: string, questionId: string, updateStore = true) {
+    if (updateStore) {
+
+      SetStore("surveyQuestions", surveyId, (prev) =>
+        prev.filter(q => q.id !== questionId)
+      );
+    }
+
+    if (!this.#surveyQuestions[surveyId]) {
+      this.#surveyQuestions[surveyId] = []
+    }
+
+    this.#surveyQuestions[surveyId] = this.#surveyQuestions[surveyId].filter(q => q.id !== questionId)
+
+
+    this.#save()
+  }
+
+  addSurveyQuestion(surveyId: string, question: SurveyQuestion, updateStore = true) {
+    if (updateStore) {
+
+      SetStore("surveyQuestions", surveyId, (prev = []) => [...prev, question]);
+    }
+
+    if (!this.#surveyQuestions[surveyId]) {
+      this.#surveyQuestions[surveyId] = []
+    }
+
+    this.#surveyQuestions[surveyId].push(question)
+
+    this.#save()
+  };
+
+  upsertSurveyQuestion(surveyId: string, questionId: string, question: SurveyQuestion, updateStore = true) {
+    question.last_modified = new Date(Date.now())
+
+    if (updateStore) {
+
+      if (Store.surveyQuestions[surveyId] && !!Store.surveyQuestions[surveyId].find(v => v.id == questionId)) {
+
+        SetStore("surveyQuestions", surveyId, (questions) =>
+          questions.map(q => q.id === questionId ? { ...question } : q)
+        );
+      } else {
+        this.addSurveyQuestion(surveyId, question)
+      }
+    }
+
+    if (this.#surveyQuestions[surveyId] && this.#surveyQuestions[surveyId].find(v => v.id == questionId)) {
+
+      this.#surveyQuestions[surveyId] = this.#surveyQuestions[surveyId].map(q => q.id === questionId ? { ...question } : q)
+    }
+
     this.#save()
   }
 }
 
-
 let AppState = new State()
-
-
-
 
 export default AppState
 

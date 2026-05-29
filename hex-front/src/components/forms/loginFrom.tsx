@@ -12,7 +12,6 @@ const LoginForm: Component = () => {
 
   const handleSubmit = async (e: Event) => {
 
-    console.log("here")
     e.preventDefault();
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     let data = {
@@ -58,7 +57,7 @@ const LoginForm: Component = () => {
 }
 
 
-export interface FormInputType {
+interface FormInputType {
   type: string
   name: string
   required: boolean

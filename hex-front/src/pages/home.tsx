@@ -1,27 +1,40 @@
 import { useNavigate } from "@solidjs/router";
-import { Component, createEffect } from "solid-js";
+import { Component, createEffect, Switch, Match } from "solid-js";
+import { unwrap } from "solid-js/store";
+import Dashboard from "~/components/dashboard/dashboard";
 import Navbar from "~/components/navbar";
-import AppState from "~/state/state";
+import Sidebar from "~/components/sidebar";
+import PublicSurveys from "~/components/surveys/publicSurveys";
+import { HomeTabType, Store } from "~/state/store";
 
 const HomePage: Component = () => {
   const navigate = useNavigate()
 
   createEffect(() => {
-    if (!AppState.connected) {
-
+    if (!Store.user) {
       navigate('/auth', { replace: true });
-
     }
   });
 
   return (
-    <div class="h-screen bg-base-300 flex justify-center items-center flex gap-1  ">
-      <div class="absolute stiky top-0">
+    <div class="h-screen bg-base-300 flex flex-col">
+      <div class="">
         <Navbar />
       </div>
-      <span class="text-xl text-primary font-bold">
-        Home page
-      </span>
+      <div class="flex-1 flex ">
+        <div class="">
+          <Sidebar />
+        </div>
+        <Switch>
+          <Match when={Store.activeHomeTab == HomeTabType.DASHBOARD}>
+            <Dashboard />
+          </Match>
+
+          <Match when={Store.activeHomeTab == HomeTabType.SURVEYS}>
+            <PublicSurveys />
+          </Match>
+        </Switch>
+      </div>
     </div>
 
   )

@@ -1,0 +1,234 @@
+from sqlalchemy import select, exists
+from sqlalchemy.orm import selectinload, joinedload
+from dto import SurveyData, CreateSurveyForm
+from database import Surveys, SurveyState,Submissions, dbConnection
+from utils import generate_id, Result
+from services import verify_token
+from fastapi import status
+
+class SurveyService():
+
+    def create_survey(self,form:CreateSurveyForm, access_token)->Result:
+
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token"})
+
+        owner_id = token_res.keys["claims"]["id"]
+        id = generate_id(48,"SV")
+        survey = Surveys(id=id,owner_id=owner_id,title=form.title,description=form.description, is_public=form.is_public)
+
+        with dbConnection() as con:
+            try:
+                con.add(survey)
+                con.commit()
+                con.refresh(survey)
+                return Result(True,{"survey": survey}) 
+            except Exception as e:
+                print(e)
+                return Result(False, {
+                    "reason":"survey creation failed" 
+                })
+
+    def delete_survey(self, id:str, access_token:str):
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token"})
+
+        user_id = token_res.keys["claims"]["id"]
+
+        stm = select(Surveys).where(Surveys.id == id )
+
+        with dbConnection() as con:
+            try:
+                survey = con.execute(stm).scalar_one_or_none()
+                if survey == None:
+                    return Result(False,{"reason":"Not found", "status_code" : status.HTTP_404_NOT_FOUND })
+
+                if survey.owner_id != user_id :
+                    return Result(False,{"reason":"Could not delete the survey", "status_code" : status.HTTP_403_FORBIDDEN })
+
+                con.delete(survey)
+                con.commit()
+            except Exception :
+                pass
+
+        return Result(True)
+
+    def update_survey(self,form:CreateSurveyForm,survey_id:str,access_token:str)->Result:
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token"})
+
+        user_id = token_res.keys["claims"]["id"]
+
+        stm = select(Surveys).where(Surveys.id == survey_id )
+
+
+        with dbConnection() as con:
+            try:
+                survey = con.execute(stm).scalar_one_or_none()
+                if survey == None:
+                    return Result(False,{"reason":"Not found", "status_code" : status.HTTP_404_NOT_FOUND })
+
+                if survey.owner_id != user_id :
+                    return Result(False,{"reason":"Could not delete the survey", "status_code" : status.HTTP_403_FORBIDDEN })
+
+                survey.description = form.description
+                survey.is_public = form.is_public
+                survey.title = form.title
+
+                con.commit()
+                con.refresh(survey)
+
+                return Result(True,{"survey": survey}) 
+            except Exception as e:
+                print(e)
+                return Result(False,{"reason":"Could not update the survey", "status_code" : status.HTTP_400_BAD_REQUEST })
+
+
+    def get_surveys_created_by(self, access_token:str,include_q = False)->Result:
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token"})
+
+        user_id = token_res.keys["claims"]["id"]
+
+        stm = select(Surveys).where(Surveys.owner_id == user_id)
+
+        if (include_q):
+            stm = stm.options(
+                selectinload(Surveys.questions)
+            )
+
+
+        with dbConnection() as con:
+            try:
+                surveys = con.execute(stm).scalars().all()
+
+                return Result(True,{"surveys": surveys}) 
+            except Exception:
+                return Result(False,{"reason":"Could not get the surveys"})
+
+    def get_surveys_public(self,include_q = False)->Result:
+        stm = select(Surveys).where((Surveys.is_public == True) & (Surveys.state == SurveyState.PUBLISHED))
+
+
+        if (include_q):
+            stm = stm.options(
+                selectinload(Surveys.questions)
+            )
+
+
+        with dbConnection() as con:
+            try:
+                surveys = con.execute(stm).scalars().all()
+                return Result(True,{"surveys": surveys}) 
+            except Exception:
+                return Result(False,{"reason":"Could not get the surveys"})
+
+
+    def get_surveys_submitted(self,access_token:str,include_q = False)->Result:
+
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token"})
+
+        user_id = token_res.keys["claims"]["id"]
+
+
+
+        stm = select(Surveys).where(
+            exists().where(
+                (Submissions.survey_id == Surveys.id) & 
+                    (Submissions.user_id == user_id)
+            )
+        )
+
+        if (include_q):
+            stm = stm.options(
+                selectinload(Surveys.questions)
+            )
+
+
+        with dbConnection() as con:
+            try:
+                surveys = con.execute(stm).scalars().all()
+                return Result(True,{"surveys": surveys}) 
+            except Exception:
+                return Result(False,{"reason":"Could not get the surveys"})
+
+
+
+    def get_survey_by_id(self,id:str, access_token:str, key:str | None = None, include_questions = False)->Result:
+
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token"})
+
+        user_id = token_res.keys["claims"]["id"]
+        res = {}
+
+        stm = select(Surveys).where(Surveys.id == id)
+
+        if (include_questions):
+            stm = stm.options(
+                selectinload(Surveys.questions)
+            )
+
+        with dbConnection() as con:
+            try:
+                survey = con.execute(stm).scalar_one_or_none()
+
+                if survey == None:
+                    return Result(False,{"reason": "Not found"})
+
+                # i have created the survey 
+                if survey.owner_id == user_id:
+                    res["survey"] = survey
+                    return Result(True,res)
+
+                # i have a valid key for the survey
+                for k in survey.keys:
+                    if k.value == key:
+                        res["survey"] = survey
+                        return Result(True,res)
+
+                # i alreary have completed the survey
+                for sub in survey.submissions:
+                    if sub.user_id == user_id :
+                        res["survey"] = survey
+                        return Result(True,res)
+
+                # publick survey
+                if survey.is_public and survey.state == SurveyState.PUBLISHED:
+                    res["survey"] = survey
+                    return Result(True,res)
+                return Result(False,{"reason":"Could not get the survey", "status_code" : status.HTTP_403_FORBIDDEN })
+            except Exception:
+                return Result(False,{"reason":"Could not get the survey"})
+
