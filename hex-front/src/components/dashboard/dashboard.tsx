@@ -1,11 +1,11 @@
 import { BsLockFill } from "solid-icons/bs"
-import { Component, createEffect, createSignal, For, Switch, Match, Show } from "solid-js"
-import { SurveyData, SurveyS, SurveyState } from "~/services/surveyService"
+import { Component, createEffect, For, Switch, Match, Show } from "solid-js"
+import { SurveyData, SurveyState } from "~/services/surveyService"
 import AppState from "~/state/state"
 import { Store } from "~/state/store"
 import CreateSurveyDialog from "./createSurveyDialog"
 import DeleteSurveyDialog from "./deleteSurveyDialog"
-import SurveyEditor from "./surveyEditor"
+import SurveyEditor from "../surveyEditor/surveyEditor"
 import CreateQuestionDialog from "./CreateQuestionDialog"
 import DashboardFooter from "./dashboardFooter"
 import DashboardPanel from "./dashboardPanel"
@@ -30,18 +30,18 @@ const Dashboard: Component = () => {
           <DashboardBody />
         </Match>
         <Match when={Store.activeDashboardSurveyId != ""}>
-          <SurveyStats />
+          <SurveyDetails />
         </Match>
       </Switch>
-
       <DashboardFooter />
     </div>
   )
 }
 
-const SurveyStats = () => {
+const SurveyDetails = () => {
 
   let activeSurvey = () => Store.dashboardSurveys?.find(v => v.id == Store.activeDashboardSurveyId)
+
   return (
     <div class="flex-1 flex bg-transparent flex flex-col gap-2 ">
       <Switch>
@@ -58,10 +58,9 @@ const SurveyStats = () => {
 
 const DashboardBody = () => {
   return (
-    <div class="flex-1 flex bg-transparent flex flex-col gap-2 overflow-y-scroll  ">
-      <div class="h-fit min-h-screen  flex-[3_1_0]">
+    <div class="bg-transparent flex-1 flex flex-col gap-2 relative overflow-y-auto ">
+      <div class="max-h-[700px]">
         <For each={Store.dashboardSurveys}>
-
           {(item, index) =>
             <SurveyCard data={item} />
           }
@@ -71,14 +70,11 @@ const DashboardBody = () => {
   )
 }
 
-
-
 interface SurveysCardProps {
   data: SurveyData
 }
 
 const SurveyCard = (props: SurveysCardProps) => {
-
   return (
     <div class=" relative h-24 border-base-100 p-1 border-b-1 rounded-[0.25rem] select-none flex flex-col cursor-pointer hover:bg-base-100"
       onclick={() => AppState.activeDashboardSurveyId = props.data.id}

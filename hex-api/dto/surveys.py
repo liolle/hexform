@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
 
@@ -5,6 +6,17 @@ class CreateSurveyForm(BaseModel):
     title :str
     description :str
     is_public :bool
+
+class SurveyQuestionForm(BaseModel):
+    id:str 
+    title:str
+    type:str
+    config:str 
+    last_modified:datetime 
+    position:int
+
+class UpdateSurveyQuestionForm(BaseModel):
+    questions : list[SurveyQuestionForm] 
 
 class SurveyData():
     _id:str

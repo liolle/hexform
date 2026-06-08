@@ -1,7 +1,7 @@
 import { SurveyData, SurveyS } from "~/services/surveyService";
 import { HomeTabType, SetStore, Store, UserData } from "./store"
 import { AuthS } from "~/services/services";
-import { SurveyQuestion } from "~/types";
+import { SurveyQuestion, SurveyQuestionError } from "~/types";
 
 function decodeJWT(token: string) {
   try {
@@ -27,6 +27,7 @@ class State {
   #activeHomeTab: HomeTabType = HomeTabType.DASHBOARD
   #activeDashboardSurveyId: string = ""
   #surveyQuestions: Record<string, SurveyQuestion[]> = {}
+  #surveyQuestionsErrors: Record<string, SurveyQuestionError[]> = {}
 
 
   constructor() {
@@ -41,7 +42,8 @@ class State {
       accessToken: this.accessToken,
       activeHomeTab: this.activeHomeTab,
       activeDashboardSurveyId: this.#activeDashboardSurveyId,
-      surveyQuestions: JSON.stringify(this.#surveyQuestions)
+      surveyQuestions: JSON.stringify(this.#surveyQuestions),
+      surveyQuestionsErrors: JSON.stringify(this.#surveyQuestionsErrors),
     }))
   }
 
@@ -66,6 +68,10 @@ class State {
       this.#reconciliateSureyQuestions(jsonState["surveyQuestions"])
       SetStore("activeHomeTab", this.#activeHomeTab)
       SetStore("activeDashboardSurveyId", this.#activeDashboardSurveyId)
+
+      const parsedQuestionsErrors: Record<string, SurveyQuestionError[]> = jsonState["surveyQuestionsErrors"] ? JSON.parse(jsonState["surveyQuestionsErrors"]) : {};
+      console.log(jsonState["surveyQuestionsErrors"], parsedQuestionsErrors)
+      SetStore("surveyQuestionsErrors", parsedQuestionsErrors)
 
     } catch (error) {
       console.log("Failed to load state")
@@ -262,23 +268,31 @@ class State {
       SetStore("surveyQuestions", surveyId, (prev) =>
         prev.filter(q => q.id !== questionId)
       );
+
     }
+
 
     if (!this.#surveyQuestions[surveyId]) {
       this.#surveyQuestions[surveyId] = []
     }
 
     this.#surveyQuestions[surveyId] = this.#surveyQuestions[surveyId].filter(q => q.id !== questionId)
+    this.removeAllQuestionError(surveyId, questionId)
 
 
     this.#save()
   }
 
   addSurveyQuestion(surveyId: string, question: SurveyQuestion, updateStore = true) {
+
     if (updateStore) {
 
-      SetStore("surveyQuestions", surveyId, (prev = []) => [...prev, question]);
+      setTimeout(() => {
+
+        SetStore("surveyQuestions", surveyId, (prev = []) => [...prev, question]);
+      })
     }
+
 
     if (!this.#surveyQuestions[surveyId]) {
       this.#surveyQuestions[surveyId] = []
@@ -292,6 +306,11 @@ class State {
   upsertSurveyQuestion(surveyId: string, questionId: string, question: SurveyQuestion, updateStore = true) {
     question.last_modified = new Date(Date.now())
 
+    if (this.#surveyQuestions[surveyId] && this.#surveyQuestions[surveyId].find(v => v.id == questionId)) {
+
+      this.#surveyQuestions[surveyId] = this.#surveyQuestions[surveyId].map(q => q.id === questionId ? { ...question } : q)
+    }
+
     if (updateStore) {
 
       if (Store.surveyQuestions[surveyId] && !!Store.surveyQuestions[surveyId].find(v => v.id == questionId)) {
@@ -304,12 +323,60 @@ class State {
       }
     }
 
-    if (this.#surveyQuestions[surveyId] && this.#surveyQuestions[surveyId].find(v => v.id == questionId)) {
+    this.#save()
+  }
 
-      this.#surveyQuestions[surveyId] = this.#surveyQuestions[surveyId].map(q => q.id === questionId ? { ...question } : q)
+  syncQuestionErrors() {
+    for (const key in this.#surveyQuestions) {
+
+      SetStore("surveyQuestions", key, this.#surveyQuestions[key])
+    }
+  }
+
+  upsertQuestionError(surveyId: string, key: string, error: string) {
+
+    let errs = this.#surveyQuestionsErrors[surveyId]
+    if (!errs) {
+      errs = []
     }
 
+    this.#surveyQuestionsErrors[surveyId] = [...errs, { field: key, value: error }]
+
     this.#save()
+  }
+
+  removeAllQuestionError(surveyId: string, pattern: string) {
+
+    let errs = this.#surveyQuestionsErrors[surveyId]
+    if (!errs) {
+      return
+    }
+
+    let reg = new RegExp(`${pattern}.*`)
+    this.#surveyQuestionsErrors[surveyId] = errs.filter(v => !reg.test(v.field))
+    SetStore("surveyQuestionsErrors", surveyId, (prev) => prev.filter(v => !reg.test(v.field)))
+
+    this.#save()
+  }
+
+  removeQuestionError(surveyId: string, key: string) {
+
+    let errs = this.#surveyQuestionsErrors[surveyId]
+    if (!errs) {
+      return
+    }
+
+    this.#surveyQuestionsErrors[surveyId] = errs.filter(v => v.field != key)
+
+    this.#save()
+  }
+
+  setQuestions(surveyId: string, questions: SurveyQuestion[]) {
+    this.#surveyQuestions[surveyId] = [...questions]
+    SetStore("surveyQuestions", surveyId, (prev) => [...questions])
+    SetStore("surveyQuestionsErrors", surveyId, (prev) => [])
+
+
   }
 }
 

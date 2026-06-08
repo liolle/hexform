@@ -5,6 +5,14 @@ import { SurveyQuestion, SurveyQuestionType } from "~/types"
 
 const chars = "abcdefghijklmnopkrstuvwxyz0123456789"
 
+const defaultConfig: Record<SurveyQuestionType, string> = {
+  TEXT: "",
+  NUMBER: "",
+  BOOL: "",
+  RATING: "{\"max\":\"2\"}",
+  MULTI_PICK: ""
+}
+
 function generateTempId(): string {
   let id: string[] = []
 
@@ -20,9 +28,10 @@ function generateTempId(): string {
   return id.join("")
 }
 
+
+
 const CreateQuestionDialog: Component = () => {
 
-  let formRef: HTMLFormElement | undefined
 
   const closeSurveyModal = () => {
 
@@ -41,12 +50,11 @@ const CreateQuestionDialog: Component = () => {
 
     let q: SurveyQuestion = {
       type: type,
-      title: "",
-      config: "",
+      title: "Default question",
+      config: defaultConfig[type],
       position: 0,
       last_modified: new Date(Date.now()),
       id: generateTempId()
-
     }
 
     AppState.addSurveyQuestion(Store.activeDashboardSurveyId, q)

@@ -98,7 +98,7 @@ const RegisterForm: Component = () => {
           <FormInput type="password" name="password" placeholder="Password" required={true} />
           <FormInput type="email" name="email" placeholder="Email" required={false} />
         </div>
-        <button class="btn btn-neutral">Register</button>
+        <button class="btn btn-neutral rounded-[.5rem] focus:outline-0">Register</button>
       </fieldset>
     </form>
   )
@@ -118,7 +118,7 @@ const FormInput = (props: FormInputType) => {
       <input
         type={props.type}
         name={props.name}
-        class="input"
+        class="input rounded-[.5rem] focus:outline-0"
         required={props.required}
         placeholder={props.placeholder} />
 

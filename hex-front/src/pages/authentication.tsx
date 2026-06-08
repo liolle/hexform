@@ -48,7 +48,7 @@ const AuthPage: Component = () => {
 
   return (
     <div class="h-screen bg-base-300 flex ">
-      <div role="tablist" class="tabs tabs-lift mt-[calc(50%-300px)] ml-[calc(50%-150px)]">
+      <div role="tablist" class="tabs tabs-lift mt-[calc(50vh-300px)] ml-[calc(50vw-150px)]">
         {/* Tab 1 */}
         <input
           type="radio"

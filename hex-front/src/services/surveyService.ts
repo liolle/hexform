@@ -58,6 +58,17 @@ class SurveyService {
     return response
   }
 
+  async updateSurveyQuestion(data: object, surveyId: string): Promise<ClientResponse> {
+    let response = await Client.patch(`surveys/${surveyId}/questions`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+      .withBody(data)
+      .send()
+
+    return response
+  }
+
   async deleteSurvey(id: string): Promise<ClientResponse> {
     let response = await Client.delete(`surveys/${id}`)
       .withHeaders([

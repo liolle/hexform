@@ -1,12 +1,16 @@
-from sqlalchemy import select, exists
+from datetime import datetime
+from operator import and_
+from sqlalchemy import delete, insert, select, exists, and_
 from sqlalchemy.orm import selectinload, joinedload
-from dto import SurveyData, CreateSurveyForm
-from database import Surveys, SurveyState,Submissions, dbConnection
+from sqlalchemy.dialects.postgresql import insert
+from dto import SurveyData, CreateSurveyForm, SurveyQuestionForm
+from database import Surveys, SurveyState,Submissions, Questions, QType, dbConnection
 from utils import generate_id, Result
 from services import verify_token
 from fastapi import status
 
 class SurveyService():
+
 
     def create_survey(self,form:CreateSurveyForm, access_token)->Result:
 
@@ -62,6 +66,86 @@ class SurveyService():
                 pass
 
         return Result(True)
+
+    def update_survey_questions(self,questions: list[SurveyQuestionForm],survey_id:str,access_token:str)->Result:
+
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token"})
+
+        user_id = token_res.keys["claims"]["id"]
+
+        stm = select(Surveys).where(Surveys.id == survey_id )
+
+        data:list = []
+
+        for q in questions:
+            if not q.id:
+                id = generate_id(48,"SVQ")
+                q.id = id
+            data.append(
+                {
+                    "id": q.id,
+                    "title": q.title,
+                    "type": QType(q.type),
+                    "survey_id": survey_id,
+                    "last_modified": datetime.now(),
+                    "config": q.config or {},  # Handle empty config
+                    "position": q.position
+                }
+            )
+            #data.append(Questions(id=q.id,title=q.title,type=QType(q.type),survey_id=survey_id,config=q.config,position=q.position))
+
+
+        incoming_ids = [q.id for q in questions]
+
+        delStm = delete(Questions).where(
+            and_(
+                Questions.survey_id == survey_id,
+                Questions.id.not_in(incoming_ids)
+            )
+        )
+
+        insertStm = insert(Questions).values(data)
+        insertStm = insertStm.on_conflict_do_update(
+            index_elements=['id'],
+            set_={
+                'title': insertStm.excluded.title,
+                'type': insertStm.excluded.type,
+                'last_modified': insertStm.excluded.last_modified,
+                'config': insertStm.excluded.config,
+                'position': insertStm.excluded.position
+            }
+        )
+
+
+        with dbConnection() as con:
+            try:
+                survey = con.execute(stm).scalar_one_or_none()
+                if survey == None:
+                    return Result(False,{"reason":"Not found", "status_code" : status.HTTP_404_NOT_FOUND })
+
+                if survey.owner_id != user_id :
+                    return Result(False,{"reason":"Could not delete the survey", "status_code" : status.HTTP_403_FORBIDDEN })
+
+                if incoming_ids:
+                    con.execute(delStm)
+
+                con.execute(insertStm)
+                con.commit()
+
+                return Result(True,{"questions": questions}) 
+            except Exception as e:
+                print(e)
+                return Result(False,{"reason":"Could not update the survey", "status_code" : status.HTTP_400_BAD_REQUEST })
+
+
+
+
 
     def update_survey(self,form:CreateSurveyForm,survey_id:str,access_token:str)->Result:
         token_res = verify_token(access_token)

@@ -14,3 +14,27 @@ export interface SurveyQuestion {
   config: string
   position: number
 }
+
+export interface SurveyQuestionError {
+  field: string
+  value: string
+}
+
+export interface QuestionCardProps {
+  surveyId: string
+  question: SurveyQuestion
+}
+
+export interface RatingConfig {
+  max: number
+}
+
+export interface NumberConfig {
+  min: number
+  max: number
+}
+
+export interface BoolConfig {
+  trueLabel: string
+  falseLabel: string
+}
