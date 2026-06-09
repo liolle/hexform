@@ -59,7 +59,6 @@ const CreateQuestionDialog: Component = () => {
 
     AppState.addSurveyQuestion(Store.activeDashboardSurveyId, q)
     closeSurveyModal()
-
   }
 
   return (

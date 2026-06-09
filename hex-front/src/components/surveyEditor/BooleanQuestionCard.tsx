@@ -1,56 +1,28 @@
 import { IoTrashBinOutline } from "solid-icons/io";
-import { createEffect, Show } from "solid-js";
+import { Show } from "solid-js";
+import { unwrap } from "solid-js/store";
 import z from "zod";
 import AppState from "~/state/state";
-import { SetStore, Store } from "~/state/store";
+import { Store } from "~/state/store";
 import { BoolConfig, QuestionCardProps, SurveyQuestion } from "~/types";
-import { debounce, ExtractQErrors } from "~/utils";
-
+import { debouncedSaveQuestion } from "~/utils";
 
 const Schema = z.object({
   title: z.string()
     .min(1, "The question need to containt at least a character"),
 })
 
-
 export const BoolQuestionCard = (props: QuestionCardProps) => {
 
   let question = AppState.surveyQuestions[props.surveyId]?.find(v => v.id == props.question.id)
-  let q: SurveyQuestion = question ?? props.question
+  let q: SurveyQuestion = question ?? unwrap(props.question)
   let config: BoolConfig = q.config ? JSON.parse(q.config) : {};
-  let errs: Record<string, string> = {}
-
-  const debouncedSave = debounce(() => {
-    AppState.upsertSurveyQuestion(props.surveyId, props.question.id, q, false);
-  }, 500);
 
   const handleTileError = () => {
-
     let err = Schema.pick({ title: true }).safeParse({ title: q.title })
     let key = `${props.question.id}:title`
-
-    AppState.removeQuestionError(props.surveyId, key)
-
-    SetStore("surveyQuestionsErrors", props.surveyId, (prev = []) =>
-      prev.filter(q => q.field !== key)
-    )
-
-    if (!err.error) {
-
-      return
-    }
-
-    let msg = err.error.issues[0].message
-    errs["title"] = msg
-
-    SetStore("surveyQuestionsErrors", props.surveyId, (prev = []) => {
-
-      return [...prev, { field: key, value: msg }]
-    })
-
-    AppState.upsertQuestionError(props.surveyId, key, msg)
+    AppState.handleQuestionError(err, key, props.surveyId)
   }
-
 
   const handleInput = (e: InputEvent) => {
 
@@ -76,12 +48,9 @@ export const BoolQuestionCard = (props: QuestionCardProps) => {
       }
 
     } catch (error) {
-
-      console.log(error)
-
     }
 
-    debouncedSave();
+    debouncedSaveQuestion(props.surveyId, q);
   }
 
   let errors = () => {
@@ -102,7 +71,7 @@ export const BoolQuestionCard = (props: QuestionCardProps) => {
         type="text"
         name="title"
         class="input rounded-[.5rem] focus:outline-0"
-        value={question?.title ?? ""}
+        value={q?.title ?? ""}
         onInput={handleInput}
         required={true}
         placeholder={"Question ?"} />

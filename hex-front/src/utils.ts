@@ -1,3 +1,7 @@
+import { DEFAULT_DEBOUNCE } from "./const";
+import AppState from "./state/state";
+import { SurveyQuestion } from "./types";
+
 export const debounce = (fn: Function, delay: number) => {
   let timeoutId: NodeJS.Timeout;
   return (...args: any[]) => {
@@ -15,18 +19,15 @@ export const AllowDigitOnly = (e: KeyboardEvent) => {
     'Home', 'End'
   ];
 
-  // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
   if (e.ctrlKey && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
     return;
   }
 
-  // Allow: numbers
   if (/^[0-9]$/.test(e.key)) {
     return;
   }
 
 
-  // Block everything else
   if (!allowedKeys.includes(e.key)) {
     e.preventDefault();
   }
@@ -52,3 +53,9 @@ export const ExtractQErrors = (errors: string) => {
     return []
   }
 }
+
+export const debouncedSaveQuestion = (surveyId: string, question: SurveyQuestion) => {
+  debounce(() => {
+    AppState.upsertSurveyQuestion(surveyId, question.id, question, false);
+  }, DEFAULT_DEBOUNCE);
+} 

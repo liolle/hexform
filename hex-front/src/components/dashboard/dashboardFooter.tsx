@@ -49,7 +49,6 @@ const DashboardFooter: Component = () => {
       return
     }
 
-    console.log(questions)
 
     let qs = questions.map(v => {
       return {
@@ -68,7 +67,6 @@ const DashboardFooter: Component = () => {
 
     let resQuestions: SurveyQuestion[] = res.result.content.get("questions") ?? []
     AppState.setQuestions(surveyId, resQuestions)
-    console.log(resQuestions)
     sending = false
   }
 

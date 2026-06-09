@@ -2,6 +2,8 @@ import { SurveyData, SurveyS } from "~/services/surveyService";
 import { HomeTabType, SetStore, Store, UserData } from "./store"
 import { AuthS } from "~/services/services";
 import { SurveyQuestion, SurveyQuestionError } from "~/types";
+import { ZodSafeParseResult } from "zod";
+import { unwrap } from "solid-js/store";
 
 function decodeJWT(token: string) {
   try {
@@ -286,11 +288,8 @@ class State {
   addSurveyQuestion(surveyId: string, question: SurveyQuestion, updateStore = true) {
 
     if (updateStore) {
-
-      setTimeout(() => {
-
-        SetStore("surveyQuestions", surveyId, (prev = []) => [...prev, question]);
-      })
+      SetStore("surveyQuestions", surveyId, (prev = []) => [...prev, { ...question }]);
+      console.log(unwrap(Store.surveyQuestions))
     }
 
 
@@ -375,9 +374,36 @@ class State {
     this.#surveyQuestions[surveyId] = [...questions]
     SetStore("surveyQuestions", surveyId, (prev) => [...questions])
     SetStore("surveyQuestionsErrors", surveyId, (prev) => [])
-
-
   }
+
+  handleQuestionError(err: ZodSafeParseResult<object>, key: string, surveyId: string) {
+
+    AppState.removeQuestionError(surveyId, key)
+
+
+    if (!Store.surveyQuestionsErrors[surveyId]) {
+      SetStore("surveyQuestionsErrors", surveyId, [])
+    }
+
+    SetStore("surveyQuestionsErrors", surveyId, (prev = []) =>
+      prev.filter(q => q.field !== key)
+    )
+
+    if (!err.error) {
+
+      return
+    }
+
+    let msg = err.error.issues[0].message
+
+    SetStore("surveyQuestionsErrors", surveyId, (prev = []) => {
+
+      return [...prev, { field: key, value: msg }]
+    })
+
+    AppState.upsertQuestionError(surveyId, key, msg)
+  }
+
 }
 
 let AppState = new State()
