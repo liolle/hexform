@@ -1,44 +1,12 @@
-import DB from "~/state/database"
-import Client, { CachedClientResponse, ClientResponse } from "~/state/httpClient"
-
-export enum SurveyState {
-  CREATED = "CREATED",
-  PUBLISHED = "PUBLISHED",
-  DONE = "DONE"
-}
-
-export interface SurveyData {
-  id: string
-  title: string
-  description: string
-  state: SurveyState
-  owner_id: string
-  is_public: boolean
-  created_at: Date
-}
+import DB, { DBStoreNames } from "~/state/database"
+import Client, { ClientResponse } from "~/state/httpClient"
 
 
 class SurveyService {
 
-  #default_invalidation_timeout = 60000
-
-  #fromCache(request: string): ClientResponse | null {
-
-    let now = Date.now()
-
-    let cache = localStorage.getItem(request)
-
-    if (cache) {
-      let cachedResponse: CachedClientResponse = JSON.parse(cache)
-      console.log(cachedResponse)
-    }
-
-    return null
-
-  }
+  /* Command  */
 
   async getCreateSurveys(include_questions = false): Promise<ClientResponse> {
-
 
     let response = await Client.get(`surveys/created?include_questions=${include_questions}`)
       .withHeaders([
@@ -62,7 +30,6 @@ class SurveyService {
 
   async getSurvey(surveyId: string, include_questions = false): Promise<ClientResponse> {
 
-
     let response = await Client.get(`surveys/${surveyId}?include_questions=${include_questions}`)
       .withHeaders([
         ["Content-Type", "application/json"]
@@ -73,6 +40,7 @@ class SurveyService {
     return response
   }
 
+  /* Queries  */
 
   async createSurvey(data: object): Promise<ClientResponse> {
     let response = await Client.post(`surveys`)
@@ -104,6 +72,19 @@ class SurveyService {
       .send()
 
     return response
+  }
+
+  /* Invalidate */
+
+  async invalidateSurvay(surveyId: string) {
+    let response = await this.getSurvey(surveyId, true)
+    if (!response.cached) {
+      return
+    }
+    let url = response.request.url.split("?")[0]
+
+    let key = `${response.request.method}:${url}`
+    DB.deleteFromKey(DBStoreNames.API_CACHE, key)
   }
 
 }

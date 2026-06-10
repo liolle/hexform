@@ -38,3 +38,26 @@ export interface BoolConfig {
   trueLabel: string
   falseLabel: string
 }
+
+
+export enum SurveyState {
+  CREATED = "CREATED",
+  PUBLISHED = "PUBLISHED",
+  DONE = "DONE"
+}
+
+export interface SurveyData {
+  id: string
+  title: string
+  description: string
+  state: SurveyState
+  owner_id: string
+  is_public: boolean
+  created_at: Date
+}
+
+// DB 
+//
+
+
+

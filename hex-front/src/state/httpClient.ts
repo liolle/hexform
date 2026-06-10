@@ -22,6 +22,7 @@ export interface CachedClientResponse {
 export interface ClientResponse {
   request: ClientRequest
   result: ClientResponseType
+  cached: boolean
 }
 
 export interface CachedRequest {
@@ -79,11 +80,14 @@ export class ClientRequest {
   async #checkCache() {
     let now = new Date(Date.now())
     let key = `${this.method}:${this.url}`
-    let res = await DB.getFromKey("apiCache", key) as CachedRequest
-
+    let res = await DB.getFromKey(DBStoreNames.API_CACHE, key) as CachedRequest
+    if (!res) {
+      return this
+    }
 
     let elapse = now.getTime() - res.last_modified.getTime()
     if (elapse < 60000) {
+      res.response.cached = true
       this.#cachedResponse = res.response
       return this
     }
@@ -130,7 +134,8 @@ export class ClientRequest {
       result: {
         status: response.status,
         content: res
-      }
+      },
+      cached: false
     }
 
 
@@ -141,18 +146,10 @@ export class ClientRequest {
       let cachedR: CachedRequest = {
         request: key,
         response: result,
-        last_modified: now
+        last_modified: now,
       }
 
-      DB.setStore(DBStoreNames.API_CACHE, cachedR)
-
-      /*
-      localStorage.setItem(key, JSON.stringify({
-        date: now,
-        response: result
-      }))
-      */
-
+      DB.updateStore(DBStoreNames.API_CACHE, cachedR)
     }
 
     return result

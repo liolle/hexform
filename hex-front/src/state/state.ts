@@ -1,7 +1,7 @@
-import { SurveyData, SurveyS } from "~/services/surveyService";
+import { SurveyS } from "~/services/surveyService";
 import { HomeTabType, SetStore, Store, UserData } from "./store"
 import { AuthS } from "~/services/services";
-import { SurveyQuestion, SurveyQuestionError } from "~/types";
+import { SurveyData, SurveyQuestion, SurveyQuestionError } from "~/types";
 import { ZodSafeParseResult } from "zod";
 
 function decodeJWT(token: string) {

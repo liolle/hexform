@@ -1,10 +1,3 @@
-
-interface CachedRequest {
-  request: string
-  response: string
-  last_modified: Date
-}
-
 export enum DBStoreNames {
   API_CACHE = "apiCache"
 }
@@ -41,7 +34,7 @@ class Database {
     })
   }
 
-  async get(storeName: string) {
+  async get(storeName: DBStoreNames) {
     return new Promise((resolve, reject) => {
       if (!this.#db) {
         reject("Db not opened")
@@ -56,7 +49,7 @@ class Database {
     })
   }
 
-  async getFromKey(storeName: string, key: string) {
+  async getFromKey(storeName: DBStoreNames, key: string) {
     return new Promise((resolve, reject) => {
       if (!this.#db) {
         reject("Db not opened")
@@ -71,7 +64,28 @@ class Database {
     })
   }
 
-  async setStore(storeName: DBStoreNames, value: object) {
+  async deleteFromKey(storeName: DBStoreNames, pattern: string) {
+    return new Promise((resolve, reject) => {
+      if (!this.#db) {
+        reject("Db not opened")
+        return
+      }
+
+      const tx = this.#db.transaction(storeName, "readwrite")
+      const store = tx.objectStore(storeName)
+
+      const range = IDBKeyRange.bound(
+        pattern,                    // lower bound
+        pattern + '\uffff'        // upper bound (all strings starting with pattern)
+      );
+
+      const request = store.delete(range)
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async updateStore(storeName: DBStoreNames, value: object) {
     return new Promise((resolve, reject) => {
       if (!this.#db) {
         reject("Db not opened")

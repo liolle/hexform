@@ -1,6 +1,5 @@
 import { BsLockFill } from "solid-icons/bs"
 import { Component, createEffect, For, Switch, Match, Show } from "solid-js"
-import { SurveyData, SurveyState } from "~/services/surveyService"
 import AppState from "~/state/state"
 import { Store } from "~/state/store"
 import CreateSurveyDialog from "./createSurveyDialog"
@@ -9,6 +8,7 @@ import SurveyEditor from "../surveyEditor/surveyEditor"
 import CreateQuestionDialog from "./CreateQuestionDialog"
 import DashboardFooter from "./dashboardFooter"
 import DashboardPanel from "./dashboardPanel"
+import { SurveyData, SurveyState } from "~/types"
 
 
 const Dashboard: Component = () => {
