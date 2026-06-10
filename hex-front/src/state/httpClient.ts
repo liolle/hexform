@@ -1,7 +1,5 @@
-import { string } from "zod"
+import DB, { DBStoreNames } from "./database"
 import AppState from "./state"
-import { json } from "@solidjs/router"
-
 
 enum RequestMethod {
   "POST" = "POST",
@@ -13,50 +11,51 @@ enum RequestMethod {
 
 export interface ClientResponseType {
   status: number
-  content: Map<string, any>
+  content: Record<string, any>
 }
 
-export class ClientResponse {
+export interface CachedClientResponse {
+  date: Date
+  response: ClientResponse
+}
 
-  #request: ClientRequest
-  #result: ClientResponseType
+export interface ClientResponse {
+  request: ClientRequest
+  result: ClientResponseType
+}
 
-  constructor(request: ClientRequest, result: ClientResponseType) {
-    this.#request = request
-    this.#result = result
-  }
-
-  get request(): ClientRequest {
-    return this.#request
-  }
-
-  get result(): ClientResponseType {
-    return this.#result
-  }
+export interface CachedRequest {
+  request: string
+  response: ClientResponse
+  last_modified: Date
 }
 
 export class ClientRequest {
-  #url: string = "http://localhost"
-  #method: RequestMethod = RequestMethod.GET
-  #headers: [string, string][] = []
-  #body: string | undefined = undefined
+  url: string = "http://localhost"
+  method: RequestMethod = RequestMethod.GET
+  headers: [string, string][] = []
+  body: string | undefined = undefined
+
+  #cachedResponse: ClientResponse | null = null
+  #needCache: boolean = false
+
 
   constructor(url: string, method: RequestMethod) {
-    this.#url = url
-    this.#method = method
+    this.url = url
+    this.method = method
   }
 
   withAuth(): ClientRequest {
     let token = AppState.accessToken
     if (!token) { return this }
-    this.#headers.push(["Authorization", `Bearer ${token}`])
+    this.headers.push(["Authorization", `Bearer ${token}`])
     return this
   }
 
   withHeaders(headers: [string, string][]): ClientRequest {
 
     for (const header of headers) {
-      this.#headers.push(header)
+      this.headers.push(header)
     }
 
     return this
@@ -64,7 +63,7 @@ export class ClientRequest {
 
   withBody(body: object): ClientRequest {
     try {
-      this.#body = JSON.stringify(body)
+      this.body = JSON.stringify(body)
     } catch (error) {
       console.log(error)
     }
@@ -72,33 +71,91 @@ export class ClientRequest {
     return this
   }
 
+  withCache(): ClientRequest {
+    this.#needCache = true
+    return this
+  }
 
-  async send(): Promise<ClientResponse> {
-    let options: RequestInit = {
-      method: this.#method.toString(),
-      headers: this.#headers,
-      body: this.#body
+  async #checkCache() {
+    let now = new Date(Date.now())
+    let key = `${this.method}:${this.url}`
+    let res = await DB.getFromKey("apiCache", key) as CachedRequest
+
+
+    let elapse = now.getTime() - res.last_modified.getTime()
+    if (elapse < 60000) {
+      this.#cachedResponse = res.response
+      return this
     }
 
-    let res: Map<string, any> = new Map()
+    return this
+  }
 
-    const response = await fetch(this.#url, options);
+
+  async send(): Promise<ClientResponse> {
+
+    if (this.#needCache) {
+
+      await this.#checkCache()
+    }
+
+    if (this.#cachedResponse) {
+      return this.#cachedResponse
+    }
+
+    let options: RequestInit = {
+      method: this.method.toString(),
+      headers: this.headers,
+      body: this.body
+    }
+
+
+    let res: Record<string, any> = {}
+
+    const response = await fetch(this.url, options);
 
     try {
       let json = await response.json()
 
       for (const el in json) {
-        res.set(el, json[el])
+        res[el] = json[el]
       }
 
     } catch (error) {
 
     }
 
-    return new ClientResponse(this, {
-      status: response.status,
-      content: res
-    })
+    const result = {
+      request: this,
+      result: {
+        status: response.status,
+        content: res
+      }
+    }
+
+
+    if (this.#needCache) {
+      let now = new Date(Date.now())
+      let key = `${this.method}:${this.url}`
+
+      let cachedR: CachedRequest = {
+        request: key,
+        response: result,
+        last_modified: now
+      }
+
+      DB.setStore(DBStoreNames.API_CACHE, cachedR)
+
+      /*
+      localStorage.setItem(key, JSON.stringify({
+        date: now,
+        response: result
+      }))
+      */
+
+    }
+
+    return result
   }
 }
 
@@ -137,8 +194,6 @@ class HttpClient {
   }
 }
 
-
 const Client = new HttpClient("http://localhost:8000")
-
 
 export default Client

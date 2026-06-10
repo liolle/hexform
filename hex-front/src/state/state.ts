@@ -3,7 +3,6 @@ import { HomeTabType, SetStore, Store, UserData } from "./store"
 import { AuthS } from "~/services/services";
 import { SurveyQuestion, SurveyQuestionError } from "~/types";
 import { ZodSafeParseResult } from "zod";
-import { unwrap } from "solid-js/store";
 
 function decodeJWT(token: string) {
   try {
@@ -72,7 +71,6 @@ class State {
       SetStore("activeDashboardSurveyId", this.#activeDashboardSurveyId)
 
       const parsedQuestionsErrors: Record<string, SurveyQuestionError[]> = jsonState["surveyQuestionsErrors"] ? JSON.parse(jsonState["surveyQuestionsErrors"]) : {};
-      console.log(jsonState["surveyQuestionsErrors"], parsedQuestionsErrors)
       SetStore("surveyQuestionsErrors", parsedQuestionsErrors)
 
     } catch (error) {
@@ -214,7 +212,7 @@ class State {
       AuthS.logout()
     }
 
-    let data = res.result.content.get("surveys") as any[]
+    let data = res.result.content["surveys"] as any[]
     if (!data) {
       return
     }
@@ -242,7 +240,7 @@ class State {
       AuthS.logout()
     }
 
-    let data = res.result.content.get("surveys") as any[]
+    let data = res.result.content["surveys"] as any[]
     if (!data) {
       return
     }
@@ -289,7 +287,6 @@ class State {
 
     if (updateStore) {
       SetStore("surveyQuestions", surveyId, (prev = []) => [...prev, { ...question }]);
-      console.log(unwrap(Store.surveyQuestions))
     }
 
 
@@ -303,11 +300,16 @@ class State {
   };
 
   upsertSurveyQuestion(surveyId: string, questionId: string, question: SurveyQuestion, updateStore = true) {
+
     question.last_modified = new Date(Date.now())
 
     if (this.#surveyQuestions[surveyId] && this.#surveyQuestions[surveyId].find(v => v.id == questionId)) {
 
       this.#surveyQuestions[surveyId] = this.#surveyQuestions[surveyId].map(q => q.id === questionId ? { ...question } : q)
+    } else {
+
+      this.#surveyQuestions[surveyId].push(question)
+
     }
 
     if (updateStore) {
@@ -318,7 +320,8 @@ class State {
           questions.map(q => q.id === questionId ? { ...question } : q)
         );
       } else {
-        this.addSurveyQuestion(surveyId, question)
+
+        SetStore("surveyQuestions", surveyId, (prev = []) => [...prev, { ...question }]);
       }
     }
 
@@ -402,6 +405,13 @@ class State {
     })
 
     AppState.upsertQuestionError(surveyId, key, msg)
+  }
+
+
+  updateSuvey(surveyId: string) {
+
+
+
   }
 
 }

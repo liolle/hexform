@@ -1,12 +1,11 @@
-import { SurveyData } from "~/services/surveyService"
-import { For, Match, Switch } from "solid-js"
-import { Store } from "~/state/store"
-import { QuestionCardProps, SurveyQuestionType } from "~/types"
+import { SurveyData, SurveyS } from "~/services/surveyService"
+import { createEffect, For, Match, Switch } from "solid-js"
+import { SetStore, Store } from "~/state/store"
+import { QuestionCardProps, SurveyQuestion, SurveyQuestionType } from "~/types"
 import TextQuestionCard from "./TextQuestionCard"
 import { RatingQuestionCard } from "./RatingQuestionCard"
 import { NumberQuestionCard } from "./NumberQuestionCard"
 import { BoolQuestionCard } from "./BooleanQuestionCard"
-import { unwrap } from "solid-js/store"
 
 interface SurveyEditorProps {
   survey: SurveyData | undefined
@@ -23,6 +22,14 @@ const SurveyEditor = (props: SurveyEditorProps) => {
       </div>
     )
   }
+
+
+  createEffect(async () => {
+    let res = await SurveyS.getSurvey(survey.id, true)
+    let questions: SurveyQuestion[] = res.result.content["survey"]["questions"] ?? []
+
+    SetStore("surveyQuestions", survey.id, (prev) => [...questions])
+  })
 
   let questions = () => {
     let sq = Store.surveyQuestions

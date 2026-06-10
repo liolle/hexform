@@ -1,10 +1,5 @@
-import Client, { ClientResponse } from "~/state/httpClient"
-
-/*
-    CREATED = 'CREATED'
-    PUBLISHED = 'PUBLISHED'
-    DONE = 'DONE'
- */
+import DB from "~/state/database"
+import Client, { CachedClientResponse, ClientResponse } from "~/state/httpClient"
 
 export enum SurveyState {
   CREATED = "CREATED",
@@ -25,7 +20,25 @@ export interface SurveyData {
 
 class SurveyService {
 
+  #default_invalidation_timeout = 60000
+
+  #fromCache(request: string): ClientResponse | null {
+
+    let now = Date.now()
+
+    let cache = localStorage.getItem(request)
+
+    if (cache) {
+      let cachedResponse: CachedClientResponse = JSON.parse(cache)
+      console.log(cachedResponse)
+    }
+
+    return null
+
+  }
+
   async getCreateSurveys(include_questions = false): Promise<ClientResponse> {
+
 
     let response = await Client.get(`surveys/created?include_questions=${include_questions}`)
       .withHeaders([
@@ -46,6 +59,20 @@ class SurveyService {
 
     return response
   }
+
+  async getSurvey(surveyId: string, include_questions = false): Promise<ClientResponse> {
+
+
+    let response = await Client.get(`surveys/${surveyId}?include_questions=${include_questions}`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+      .withCache()
+      .send()
+
+    return response
+  }
+
 
   async createSurvey(data: object): Promise<ClientResponse> {
     let response = await Client.post(`surveys`)

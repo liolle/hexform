@@ -67,6 +67,28 @@ class SurveyService():
 
         return Result(True)
 
+
+    def get_survey_questions(self,survey_id:str,access_token:str)->Result:
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token"})
+
+
+        stm = select(Questions).where(Questions.survey_id == survey_id )
+
+        with dbConnection() as con:
+            try:
+                questions = con.execute(stm).scalars().all()
+                return Result(True,{"questions": questions}) 
+            except Exception :
+                return Result(False,{"reason":"Could not get the survey questions"})
+
+
+
     def update_survey_questions(self,questions: list[SurveyQuestionForm],survey_id:str,access_token:str)->Result:
 
         token_res = verify_token(access_token)

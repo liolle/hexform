@@ -23,7 +23,7 @@ const LoginForm: Component = () => {
 
     switch (response.result.status) {
       case 200:
-        let token = response.result.content.get("token")
+        let token = response.result.content["token"]
         if (!token) {
           return
         }

@@ -1,10 +1,7 @@
-import { title } from "node:process"
 import { Component, Match, Switch } from "solid-js"
-import { unwrap } from "solid-js/store"
-import { config } from "zod"
 import { SurveyS } from "~/services/surveyService"
 import AppState from "~/state/state"
-import { SetStore, Store } from "~/state/store"
+import { Store } from "~/state/store"
 import { SurveyQuestion } from "~/types"
 
 
@@ -31,7 +28,7 @@ const DashboardFooter: Component = () => {
     dialog.showModal()
   }
 
-  const publishSurvey = async () => {
+  const SaveSurvey = async () => {
     if (sending) {
       return
     }
@@ -61,11 +58,13 @@ const DashboardFooter: Component = () => {
       }
     })
 
+    console.log(qs)
+
     let res = await SurveyS.updateSurveyQuestion({
       questions: qs
     }, surveyId)
 
-    let resQuestions: SurveyQuestion[] = res.result.content.get("questions") ?? []
+    let resQuestions: SurveyQuestion[] = res.result.content["questions"] ?? []
     AppState.setQuestions(surveyId, resQuestions)
     sending = false
   }
@@ -95,9 +94,9 @@ const DashboardFooter: Component = () => {
                   Object.values(questionErrors).some(error => error && error.trim() !== "")
                 )
               })()}
-              onclick={publishSurvey}>
+              onclick={SaveSurvey}>
               <span class="text-content text-sm font-medium">
-                Publish survey
+                Save
               </span>
             </button>
             <button class="btn btn-error rounded-[.5rem]" onclick={openDeleteSurveyModal}>

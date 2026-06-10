@@ -28,6 +28,21 @@ def patch_survey_quetions(data:UpdateSurveyQuestionForm,
 
     return res.keys
 
+@router.get("/surveys/{id}/questions")
+def get_survey_quetions(id:str,
+                surveys:SurveyService = Depends(SurveyService),
+                credentials: HTTPAuthorizationCredentials = Depends(security)):
+
+    res = surveys.get_survey_questions(id,credentials.credentials)
+
+    if not res.success: 
+        raise HTTPException(
+            status_code=res.keys["status_code"] if "status_code" in res.keys else status.HTTP_400_BAD_REQUEST,
+            detail= res.keys["reason"] 
+        )
+
+
+    return res.keys
 
 
 @router.patch("/surveys/{id}")
