@@ -1,5 +1,5 @@
 import { IoTrashBinOutline } from "solid-icons/io";
-import { Show } from "solid-js";
+import { onCleanup, Show } from "solid-js";
 import { unwrap } from "solid-js/store";
 import z from "zod";
 import AppState from "~/state/state";
@@ -14,14 +14,17 @@ const Schema = z.object({
 
 const TextQuestionCard = (props: QuestionCardProps) => {
 
-  let question = AppState.surveyQuestions[props.surveyId]?.find(v => v.id == props.question.id)
-  let q: SurveyQuestion = question ?? unwrap(props.question)
+  let q: SurveyQuestion = unwrap(props.question)
 
   const handleTileError = () => {
     let err = Schema.pick({ title: true }).safeParse({ title: q.title })
     let key = `${props.question.id}:title`
     AppState.handleQuestionError(err, key, props.surveyId)
   }
+
+  onCleanup(() => {
+    debouncedSaveQuestion(props.surveyId, q);
+  });
 
   const handleInput = (e: InputEvent) => {
 

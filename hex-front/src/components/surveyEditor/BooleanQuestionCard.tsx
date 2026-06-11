@@ -1,10 +1,11 @@
 import { IoTrashBinOutline } from "solid-icons/io";
-import { Show } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { unwrap } from "solid-js/store";
 import z from "zod";
+import DB, { DBStoreNames } from "~/state/database";
 import AppState from "~/state/state";
 import { Store } from "~/state/store";
-import { BoolConfig, QuestionCardProps, SurveyQuestion } from "~/types";
+import { BoolConfig, CachedQuestions, QuestionCardProps, SurveyQuestion } from "~/types";
 import { debouncedSaveQuestion } from "~/utils";
 
 const Schema = z.object({
@@ -14,8 +15,8 @@ const Schema = z.object({
 
 export const BoolQuestionCard = (props: QuestionCardProps) => {
 
-  let question = AppState.surveyQuestions[props.surveyId]?.find(v => v.id == props.question.id)
-  let q: SurveyQuestion = question ?? unwrap(props.question)
+
+  let q: SurveyQuestion = unwrap(props.question)
   let config: BoolConfig = q.config ? JSON.parse(q.config) : {};
 
   const handleTileError = () => {
@@ -23,6 +24,12 @@ export const BoolQuestionCard = (props: QuestionCardProps) => {
     let key = `${props.question.id}:title`
     AppState.handleQuestionError(err, key, props.surveyId)
   }
+
+
+  onCleanup(() => {
+    debouncedSaveQuestion(props.surveyId, q);
+  });
+
 
   const handleInput = (e: InputEvent) => {
 
@@ -71,7 +78,7 @@ export const BoolQuestionCard = (props: QuestionCardProps) => {
         type="text"
         name="title"
         class="input rounded-[.5rem] focus:outline-0"
-        value={q?.title ?? ""}
+        value={q.title ?? ""}
         onInput={handleInput}
         required={true}
         placeholder={"Question ?"} />

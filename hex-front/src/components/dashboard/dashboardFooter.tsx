@@ -1,8 +1,9 @@
 import { Component, Match, Switch } from "solid-js"
 import { SurveyS } from "~/services/surveyService"
+import DB, { DBStoreNames } from "~/state/database"
 import AppState from "~/state/state"
 import { Store } from "~/state/store"
-import { SurveyQuestion } from "~/types"
+import { CachedQuestions, SurveyQuestion } from "~/types"
 
 
 const tempQid = new RegExp("TEMP-.*")
@@ -39,13 +40,13 @@ const DashboardFooter: Component = () => {
       return
     }
 
-    let questions = AppState.surveyQuestions[surveyId]
+    let local_questions = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = local_questions.questions
 
     if (!questions) {
       sending = false
       return
     }
-
 
     let qs = questions.map(v => {
       return {
@@ -58,14 +59,10 @@ const DashboardFooter: Component = () => {
       }
     })
 
-    console.log(qs)
-
     let res = await SurveyS.updateSurveyQuestion({
       questions: qs
     }, surveyId)
 
-    let resQuestions: SurveyQuestion[] = res.result.content["questions"] ?? []
-    AppState.setQuestions(surveyId, resQuestions)
     sending = false
   }
 

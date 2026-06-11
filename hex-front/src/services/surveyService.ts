@@ -1,5 +1,7 @@
 import DB, { DBStoreNames } from "~/state/database"
 import Client, { ClientResponse } from "~/state/httpClient"
+import { CachedQuestions, SurveyQuestion } from "~/types"
+
 
 
 class SurveyService {
@@ -85,6 +87,57 @@ class SurveyService {
 
     let key = `${response.request.method}:${url}`
     DB.deleteFromKey(DBStoreNames.API_CACHE, key)
+  }
+
+
+  /* Sync */
+
+  async resolveQuestions(surveyId: string, questions: SurveyQuestion[]): Promise<SurveyQuestion[]> {
+
+    let local_questions = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let data: CachedQuestions = {
+      survey_id: surveyId,
+      questions: questions
+    }
+
+    if (!local_questions) {
+      DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+    }
+
+    let intersection: SurveyQuestion[] = []
+    let qMap = new Map<string, SurveyQuestion>()
+
+    for (const q of questions) {
+      qMap.set(q.id, q)
+    }
+
+    let pattern = "^TEMP-.*"
+    let exp = new RegExp(pattern)
+
+    for (const q of local_questions.questions) {
+      if (exp.test(q.id)) {
+        intersection.push(q)
+        continue
+      }
+
+      let qx = qMap.get(q.id)
+      if (!qx) {
+        continue
+      }
+
+      if (qx.last_modified < q.last_modified) {
+
+        intersection.push(q)
+      } else {
+
+        intersection.push(qx)
+      }
+    }
+
+    data.questions = intersection
+    DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+
+    return intersection
   }
 
 }

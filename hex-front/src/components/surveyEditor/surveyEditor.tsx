@@ -1,5 +1,5 @@
 import { SurveyS } from "~/services/surveyService"
-import { createEffect, For, Match, Switch } from "solid-js"
+import { Component, createEffect, For, Match, Switch } from "solid-js"
 import { SetStore, Store } from "~/state/store"
 import { QuestionCardProps, SurveyData, SurveyQuestion, SurveyQuestionType } from "~/types"
 import TextQuestionCard from "./TextQuestionCard"
@@ -27,13 +27,10 @@ const SurveyEditor = (props: SurveyEditorProps) => {
   createEffect(async () => {
     //await SurveyS.invalidateSurvay(survey.id)
     let res = await SurveyS.getSurvey(survey.id, true)
-
-    if (res.cached) {
-      console.log("Cached", res)
-    }
     let questions: SurveyQuestion[] = res.result.content["survey"]["questions"] ?? []
+    let resolvedQuestions = await SurveyS.resolveQuestions(survey.id, questions)
 
-    SetStore("surveyQuestions", survey.id, (prev) => [...questions])
+    SetStore("surveyQuestions", survey.id, (prev) => [...resolvedQuestions])
   })
 
   let questions = () => {
@@ -54,7 +51,7 @@ const SurveyEditor = (props: SurveyEditorProps) => {
   )
 }
 
-const QuestionCard = (props: QuestionCardProps) => {
+const QuestionCard: Component<QuestionCardProps> = (props: QuestionCardProps) => {
 
   return (
     <div>

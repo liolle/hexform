@@ -1,3 +1,5 @@
+import { int } from "zod/mini"
+
 export enum SurveyQuestionType {
   TEXT = "TEXT",
   NUMBER = "NUMBER",
@@ -59,5 +61,9 @@ export interface SurveyData {
 // DB 
 //
 
+export interface CachedQuestions {
+  survey_id: string
+  questions: SurveyQuestion[]
+}
 
 

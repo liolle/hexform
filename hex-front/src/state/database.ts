@@ -1,10 +1,11 @@
 export enum DBStoreNames {
-  API_CACHE = "apiCache"
+  API_CACHE = "apiCache",
+  LOCAL_QUESTIONS = "local_questions"
 }
 
 class Database {
   #name = "hexformDB"
-  #version = 1
+  #version = 2
   #db: IDBDatabase | null = null
 
   constructor() {
@@ -23,12 +24,16 @@ class Database {
 
       request.onupgradeneeded = function(event) {
         const db = (event.target as IDBOpenDBRequest).result
-        let oldVersion = event.oldVersion
 
-        if (oldVersion < 2) {
-          const cacheStore = db.createObjectStore('apiCache', { keyPath: 'request' })
+        if (!db.objectStoreNames.contains(DBStoreNames.API_CACHE)) {
+
+          const cacheStore = db.createObjectStore(DBStoreNames.API_CACHE, { keyPath: 'request' })
           cacheStore.createIndex('last_modified', 'last_modified')
-          cacheStore.createIndex('response', 'response') // Optional if keyPath is already request
+          cacheStore.createIndex('response', 'response')
+        }
+
+        if (!db.objectStoreNames.contains(DBStoreNames.LOCAL_QUESTIONS)) {
+          const localQuestions = db.createObjectStore(DBStoreNames.LOCAL_QUESTIONS, { keyPath: "survey_id" })
         }
       }
     })

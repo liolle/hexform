@@ -20,6 +20,10 @@ const DashboardPanel: Component = () => {
 
   }
 
+  const previewSurvey = () => {
+
+  }
+
   return (
     <div class="h-12 bg-transparent border-b-1 border-base-100 flex justify-between items-center">
       <Switch>
@@ -38,8 +42,13 @@ const DashboardPanel: Component = () => {
           </div>
           <div class="flex gap-4 items-center">
 
+            <button class="btn btn-soft btn-secondary rounded-[.5rem]" onclick={previewSurvey}>
+              <span class="text-content text-sm font-medium">
+                Preview
+              </span>
+            </button>
 
-            <button class="btn btn-primary rounded-[.5rem]" onclick={publishSurvey}>
+            <button class="btn btn-soft btn-primary rounded-[.5rem]" onclick={publishSurvey}>
               <span class="text-content text-sm font-medium">
                 Publish
               </span>

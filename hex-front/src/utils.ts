@@ -57,8 +57,4 @@ export const ExtractQErrors = (errors: string) => {
 export const debouncedSaveQuestion = (surveyId: string, question: SurveyQuestion) => {
 
   AppState.upsertSurveyQuestion(surveyId, question.id, question, false);
-  /*
-  debounce(() => {
-  }, DEFAULT_DEBOUNCE);
-  */
 } 
