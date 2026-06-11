@@ -139,7 +139,7 @@ export class ClientRequest {
     }
 
 
-    if (this.#needCache) {
+    if (this.#needCache && result.result.status < 300) {
       let now = new Date(Date.now())
       let key = `${this.method}:${this.url}`
 

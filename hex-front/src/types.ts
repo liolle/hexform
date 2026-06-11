@@ -24,6 +24,7 @@ export interface SurveyQuestionError {
 
 export interface QuestionCardProps {
   surveyId: string
+  questionId: string
   question: SurveyQuestion
 }
 

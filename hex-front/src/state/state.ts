@@ -116,8 +116,6 @@ class State {
   #setClaims(token: string | undefined) {
     if (token) {
 
-
-
       try {
         let data = decodeJWT(token)
 
@@ -132,16 +130,13 @@ class State {
         }
 
       } catch (error) {
-
         SetStore("user", undefined)
       }
 
     } else {
-
       SetStore("user", undefined)
     }
   }
-
 
   // Setter
   set accessToken(token: string | undefined) {
@@ -170,7 +165,6 @@ class State {
     }
 
     this.#connected = connected
-
     this.#save()
   }
 
@@ -181,7 +175,6 @@ class State {
 
     this.#activeDashboardSurveyId = id
     SetStore("activeDashboardSurveyId", id)
-
     this.#save()
   }
 
@@ -246,21 +239,35 @@ class State {
 
     let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
     let questions = qInfo.questions ?? []
+    let question = questions.find(v => v.id == questionId)
+
+    let now = new Date(Date.now())
+
+    if (!!question) {
+      for (let i = question.position + 1; i < questions.length; i++) {
+        questions[i].position--
+        questions[i].last_modified = now
+      }
+    }
+
     let filtered = questions.filter(q => q.id !== questionId)
+
+
 
     let data: CachedQuestions = {
       survey_id: surveyId,
       questions: filtered
     }
 
+
     await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+
 
     if (updateStore) {
 
       SetStore("surveyQuestions", surveyId, (prev) =>
         filtered
       );
-
     }
 
     this.removeAllQuestionError(surveyId, questionId)
@@ -270,6 +277,15 @@ class State {
 
     let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
     let questions = qInfo.questions ?? []
+
+    let position = 0
+
+    if (questions.length > 0) {
+      position = questions[questions.length - 1].position + 1
+    }
+
+    question.position = position
+
 
     questions.push(question)
 
@@ -285,7 +301,99 @@ class State {
     }
   };
 
+  async #swapQuestionIndex(surveyId: string, questions: SurveyQuestion[], idx1: number, idx2: number) {
+    let temp = questions[idx1].position
+    questions[idx1].position = questions[idx2].position
+    questions[idx2].position = temp
 
+    let qTemp = questions[idx1]
+    questions[idx1] = questions[idx2]
+    questions[idx2] = qTemp
+
+
+    let data: CachedQuestions = {
+      survey_id: surveyId,
+      questions: questions
+    }
+
+    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+    SetStore("surveyQuestions", surveyId, (prev) =>
+      questions
+    );
+
+  }
+
+  async pushUpQuestion(surveyId: string, q_id: string) {
+    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = qInfo.questions ?? []
+
+    let idx = -1
+
+    for (let i = 0; i < questions.length; i++) {
+      const element = questions[i];
+      if (element.id == q_id) {
+        idx = i
+      }
+    }
+
+    if (idx < 1) {
+      return
+    }
+
+    let q1_idx = idx
+    let q2_idx = idx - 1
+
+    await this.#swapQuestionIndex(surveyId, questions, q1_idx, q2_idx)
+  }
+
+  async pushDownQuestion(surveyId: string, q_id: string) {
+    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = qInfo.questions ?? []
+
+    let idx = -1
+
+    for (let i = 0; i < questions.length; i++) {
+      const element = questions[i];
+      if (element.id == q_id) {
+        idx = i
+      }
+    }
+
+    if (idx >= questions.length - 1) {
+      return
+    }
+
+    let q1_idx = idx
+    let q2_idx = idx + 1
+
+    await this.#swapQuestionIndex(surveyId, questions, q1_idx, q2_idx)
+  }
+
+  async swapQuestionPosition(surveyId: string, q1_id: string, q2_id: string) {
+
+    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = qInfo.questions ?? []
+
+    let q1_idx = -1
+    let q2_idx = -1
+
+    for (let i = 0; i < questions.length; i++) {
+      const element = questions[i];
+      if (element.id == q1_id) {
+        q1_idx = i
+      }
+
+      if (element.id == q2_id) {
+        q2_idx = i
+      }
+    }
+
+    if (q1_idx < 0 || q2_idx < 0 || q1_idx == q2_idx) {
+      return
+    }
+
+    await this.#swapQuestionIndex(surveyId, questions, q1_idx, q2_idx)
+  }
 
   async upsertSurveyQuestion(surveyId: string, questionId: string, question: SurveyQuestion, updateStore = true) {
 
@@ -382,7 +490,3 @@ class State {
 let AppState = new State()
 
 export default AppState
-
-
-
-

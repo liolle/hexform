@@ -2,7 +2,6 @@ import { IoTrashBinOutline } from "solid-icons/io";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { unwrap } from "solid-js/store";
 import z from "zod";
-import DB, { DBStoreNames } from "~/state/database";
 import AppState from "~/state/state";
 import { Store } from "~/state/store";
 import { BoolConfig, CachedQuestions, QuestionCardProps, SurveyQuestion } from "~/types";
@@ -15,7 +14,6 @@ const Schema = z.object({
 
 export const BoolQuestionCard = (props: QuestionCardProps) => {
 
-
   let q: SurveyQuestion = unwrap(props.question)
   let config: BoolConfig = q.config ? JSON.parse(q.config) : {};
 
@@ -25,10 +23,9 @@ export const BoolQuestionCard = (props: QuestionCardProps) => {
     AppState.handleQuestionError(err, key, props.surveyId)
   }
 
-
-  onCleanup(() => {
-    debouncedSaveQuestion(props.surveyId, q);
-  });
+  const deleteQuestion = () => {
+    AppState.removeSurveyQuestion(props.surveyId, props.question.id)
+  }
 
 
   const handleInput = (e: InputEvent) => {
@@ -114,7 +111,7 @@ export const BoolQuestionCard = (props: QuestionCardProps) => {
             </span>
           </Show>
         </div>
-        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8" onclick={() => AppState.removeSurveyQuestion(props.surveyId, props.question.id)}>
+        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8" onclick={deleteQuestion}>
           <IoTrashBinOutline />
         </button>
       </div>

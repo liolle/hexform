@@ -100,6 +100,10 @@ class Database {
       const tx = this.#db.transaction(storeName, "readwrite")
       tx.objectStore
       const store = tx.objectStore(storeName)
+
+
+      //console.log(value)
+
       const request = store.put(value)
 
       request.onsuccess = () => resolve(request.result)

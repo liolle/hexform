@@ -6,6 +6,8 @@ import TextQuestionCard from "./TextQuestionCard"
 import { RatingQuestionCard } from "./RatingQuestionCard"
 import { NumberQuestionCard } from "./NumberQuestionCard"
 import { BoolQuestionCard } from "./BooleanQuestionCard"
+import { AiFillCaretDown, AiFillCaretUp } from "solid-icons/ai"
+import AppState from "~/state/state"
 
 interface SurveyEditorProps {
   survey: SurveyData | undefined
@@ -43,7 +45,7 @@ const SurveyEditor = (props: SurveyEditorProps) => {
       <div class="max-h-[700px]">
         <For each={questions()}>
           {(item, index) =>
-            <QuestionCard surveyId={survey.id} question={item} />
+            <QuestionCard surveyId={survey.id} questionId={item.id} question={item} />
           }
         </For>
       </div>
@@ -53,23 +55,42 @@ const SurveyEditor = (props: SurveyEditorProps) => {
 
 const QuestionCard: Component<QuestionCardProps> = (props: QuestionCardProps) => {
 
+  const pushUp = () => {
+    AppState.pushUpQuestion(props.surveyId, props.questionId)
+  }
+
+  const pushDown = () => {
+    AppState.pushDownQuestion(props.surveyId, props.questionId)
+  }
+
+
   return (
-    <div>
+    <div class="relative">
+      <div class="absolute top-[1rem] right-[.5rem] flex flex-col gap-2">
+        <button class="btn btn-soft btn-outline btn-accent rounded-[.25rem] p-0 w-8 h-4" onclick={pushUp}>
+          <AiFillCaretUp />
+        </button>
+
+        <button class="btn btn-soft btn-outline btn-accent rounded-[.25rem] p-0 w-8 h-4" onclick={pushDown}>
+          <AiFillCaretDown />
+        </button>
+      </div>
       <Switch>
         <Match when={props.question.type == SurveyQuestionType.TEXT}>
-          <TextQuestionCard surveyId={props.surveyId} question={props.question} />
+          <TextQuestionCard surveyId={props.surveyId} questionId={props.questionId} question={props.question} />
         </Match>
 
         <Match when={props.question.type == SurveyQuestionType.BOOL}>
-          <BoolQuestionCard surveyId={props.surveyId} question={props.question} />
+          <BoolQuestionCard surveyId={props.surveyId} questionId={props.questionId} question={props.question} />
+
         </Match>
 
         <Match when={props.question.type == SurveyQuestionType.NUMBER}>
-          <NumberQuestionCard surveyId={props.surveyId} question={props.question} />
+          <NumberQuestionCard surveyId={props.surveyId} questionId={props.questionId} question={props.question} />
         </Match>
 
         <Match when={props.question.type == SurveyQuestionType.RATING}>
-          <RatingQuestionCard surveyId={props.surveyId} question={props.question} />
+          <RatingQuestionCard surveyId={props.surveyId} questionId={props.questionId} question={props.question} />
         </Match>
       </Switch>
     </div>

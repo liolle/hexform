@@ -63,6 +63,13 @@ const DashboardFooter: Component = () => {
       questions: qs
     }, surveyId)
 
+    if (res.result.status == 401) {
+
+      AppState.connected = false
+      AppState.accessToken = ""
+
+    }
+
     sending = false
   }
 

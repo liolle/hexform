@@ -22,9 +22,11 @@ const TextQuestionCard = (props: QuestionCardProps) => {
     AppState.handleQuestionError(err, key, props.surveyId)
   }
 
-  onCleanup(() => {
-    debouncedSaveQuestion(props.surveyId, q);
-  });
+
+
+  const deleteQuestion = () => {
+    AppState.removeSurveyQuestion(props.surveyId, props.question.id)
+  }
 
   const handleInput = (e: InputEvent) => {
 
@@ -73,7 +75,7 @@ const TextQuestionCard = (props: QuestionCardProps) => {
             </span>
           </Show>
         </div>
-        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8" onclick={() => AppState.removeSurveyQuestion(props.surveyId, props.question.id)}>
+        <button class="btn btn-outline btn-error rounded-[.5rem] p-0 w-8 h-8" onclick={deleteQuestion}>
           <IoTrashBinOutline />
         </button>
       </div>
