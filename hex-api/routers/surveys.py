@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from dto import CreateSurveyForm
+from dto import CreateSurveyForm, UpdateSurveyQuestionForm
 from typing import TYPE_CHECKING
 from services import SurveyService, verify_token
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -10,6 +10,40 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter()
 security = HTTPBearer()
+
+@router.patch("/surveys/{id}/questions")
+def patch_survey_quetions(data:UpdateSurveyQuestionForm, 
+                id:str,
+                surveys:SurveyService = Depends(SurveyService),
+                credentials: HTTPAuthorizationCredentials = Depends(security)):
+
+    res = surveys.update_survey_questions(data.questions,id,credentials.credentials)
+
+    if not res.success: 
+        raise HTTPException(
+            status_code=res.keys["status_code"] if "status_code" in res.keys else status.HTTP_400_BAD_REQUEST,
+            detail= res.keys["reason"] 
+        )
+
+
+    return res.keys
+
+@router.get("/surveys/{id}/questions")
+def get_survey_quetions(id:str,
+                surveys:SurveyService = Depends(SurveyService),
+                credentials: HTTPAuthorizationCredentials = Depends(security)):
+
+    res = surveys.get_survey_questions(id,credentials.credentials)
+
+    if not res.success: 
+        raise HTTPException(
+            status_code=res.keys["status_code"] if "status_code" in res.keys else status.HTTP_400_BAD_REQUEST,
+            detail= res.keys["reason"] 
+        )
+
+
+    return res.keys
+
 
 @router.patch("/surveys/{id}")
 def patch_survey(data:CreateSurveyForm, 

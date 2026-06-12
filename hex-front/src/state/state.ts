@@ -1,7 +1,9 @@
-import { SurveyData, SurveyS } from "~/services/surveyService";
+import { SurveyS } from "~/services/surveyService";
 import { HomeTabType, SetStore, Store, UserData } from "./store"
 import { AuthS } from "~/services/services";
-import { SurveyQuestion } from "~/types";
+import { CachedQuestions, SurveyData, SurveyQuestion, SurveyQuestionError } from "~/types";
+import { ZodSafeParseResult } from "zod";
+import DB, { DBStoreNames } from "./database";
 
 function decodeJWT(token: string) {
   try {
@@ -26,12 +28,10 @@ class State {
   #accessToken: string | undefined = undefined
   #activeHomeTab: HomeTabType = HomeTabType.DASHBOARD
   #activeDashboardSurveyId: string = ""
-  #surveyQuestions: Record<string, SurveyQuestion[]> = {}
+  #surveyQuestionsErrors: Record<string, SurveyQuestionError[]> = {}
 
 
   constructor() {
-    // Load state from local storate
-
     this.#load()
   }
 
@@ -41,7 +41,7 @@ class State {
       accessToken: this.accessToken,
       activeHomeTab: this.activeHomeTab,
       activeDashboardSurveyId: this.#activeDashboardSurveyId,
-      surveyQuestions: JSON.stringify(this.#surveyQuestions)
+      surveyQuestionsErrors: JSON.stringify(this.#surveyQuestionsErrors),
     }))
   }
 
@@ -63,9 +63,11 @@ class State {
 
 
       this.#setClaims(this.#accessToken)
-      this.#reconciliateSureyQuestions(jsonState["surveyQuestions"])
       SetStore("activeHomeTab", this.#activeHomeTab)
       SetStore("activeDashboardSurveyId", this.#activeDashboardSurveyId)
+
+      const parsedQuestionsErrors: Record<string, SurveyQuestionError[]> = jsonState["surveyQuestionsErrors"] ? JSON.parse(jsonState["surveyQuestionsErrors"]) : {};
+      SetStore("surveyQuestionsErrors", parsedQuestionsErrors)
 
     } catch (error) {
       console.log("Failed to load state")
@@ -74,16 +76,7 @@ class State {
     this.#loaded = true
   }
 
-  #reconciliateSureyQuestions(storedQuestions: string) {
 
-    try {
-      const parsedQuestions: Record<string, SurveyQuestion[]> = storedQuestions ? JSON.parse(storedQuestions) : {};
-      this.#surveyQuestions = parsedQuestions
-      SetStore("surveyQuestions", parsedQuestions)
-    } catch (error) {
-
-    }
-  }
 
 
   // Getter
@@ -120,17 +113,8 @@ class State {
     return this.#activeHomeTab
   }
 
-  get surveyQuestions(): Record<string, SurveyQuestion[]> {
-    if (!this.#loaded) {
-      this.#load()
-    }
-    return this.#surveyQuestions
-  }
-
   #setClaims(token: string | undefined) {
     if (token) {
-
-
 
       try {
         let data = decodeJWT(token)
@@ -146,16 +130,13 @@ class State {
         }
 
       } catch (error) {
-
         SetStore("user", undefined)
       }
 
     } else {
-
       SetStore("user", undefined)
     }
   }
-
 
   // Setter
   set accessToken(token: string | undefined) {
@@ -184,7 +165,6 @@ class State {
     }
 
     this.#connected = connected
-
     this.#save()
   }
 
@@ -195,7 +175,6 @@ class State {
 
     this.#activeDashboardSurveyId = id
     SetStore("activeDashboardSurveyId", id)
-
     this.#save()
   }
 
@@ -206,7 +185,7 @@ class State {
       AuthS.logout()
     }
 
-    let data = res.result.content.get("surveys") as any[]
+    let data = res.result.content["surveys"] as any[]
     if (!data) {
       return
     }
@@ -234,7 +213,7 @@ class State {
       AuthS.logout()
     }
 
-    let data = res.result.content.get("surveys") as any[]
+    let data = res.result.content["surveys"] as any[]
     if (!data) {
       return
     }
@@ -256,67 +235,258 @@ class State {
   }
 
 
-  removeSurveyQuestion(surveyId: string, questionId: string, updateStore = true) {
+  async removeSurveyQuestion(surveyId: string, questionId: string, updateStore = true) {
+
+    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = qInfo.questions ?? []
+    let question = questions.find(v => v.id == questionId)
+
+    let now = new Date(Date.now())
+
+    if (!!question) {
+      for (let i = question.position + 1; i < questions.length; i++) {
+        questions[i].position--
+        questions[i].last_modified = now
+      }
+    }
+
+    let filtered = questions.filter(q => q.id !== questionId)
+
+
+
+    let data: CachedQuestions = {
+      survey_id: surveyId,
+      questions: filtered
+    }
+
+
+    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+
+
     if (updateStore) {
 
       SetStore("surveyQuestions", surveyId, (prev) =>
-        prev.filter(q => q.id !== questionId)
+        filtered
       );
     }
 
-    if (!this.#surveyQuestions[surveyId]) {
-      this.#surveyQuestions[surveyId] = []
+    this.removeAllQuestionError(surveyId, questionId)
+  }
+
+  async addSurveyQuestion(surveyId: string, question: SurveyQuestion, updateStore = true) {
+
+    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = qInfo.questions ?? []
+
+    let position = 0
+
+    if (questions.length > 0) {
+      position = questions[questions.length - 1].position + 1
     }
 
-    this.#surveyQuestions[surveyId] = this.#surveyQuestions[surveyId].filter(q => q.id !== questionId)
+    question.position = position
 
+
+    questions.push(question)
+
+    let data: CachedQuestions = {
+      survey_id: surveyId,
+      questions: questions
+    }
+
+    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+
+    if (updateStore) {
+      SetStore("surveyQuestions", surveyId, (prev = []) => questions);
+    }
+  };
+
+  async #swapQuestionIndex(surveyId: string, questions: SurveyQuestion[], idx1: number, idx2: number) {
+    let temp = questions[idx1].position
+    questions[idx1].position = questions[idx2].position
+    questions[idx2].position = temp
+
+    let qTemp = questions[idx1]
+    questions[idx1] = questions[idx2]
+    questions[idx2] = qTemp
+
+
+    let data: CachedQuestions = {
+      survey_id: surveyId,
+      questions: questions
+    }
+
+    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+    SetStore("surveyQuestions", surveyId, (prev) =>
+      questions
+    );
+
+  }
+
+  async pushUpQuestion(surveyId: string, q_id: string) {
+    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = qInfo.questions ?? []
+
+    let idx = -1
+
+    for (let i = 0; i < questions.length; i++) {
+      const element = questions[i];
+      if (element.id == q_id) {
+        idx = i
+      }
+    }
+
+    if (idx < 1) {
+      return
+    }
+
+    let q1_idx = idx
+    let q2_idx = idx - 1
+
+    await this.#swapQuestionIndex(surveyId, questions, q1_idx, q2_idx)
+  }
+
+  async pushDownQuestion(surveyId: string, q_id: string) {
+    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = qInfo.questions ?? []
+
+    let idx = -1
+
+    for (let i = 0; i < questions.length; i++) {
+      const element = questions[i];
+      if (element.id == q_id) {
+        idx = i
+      }
+    }
+
+    if (idx >= questions.length - 1) {
+      return
+    }
+
+    let q1_idx = idx
+    let q2_idx = idx + 1
+
+    await this.#swapQuestionIndex(surveyId, questions, q1_idx, q2_idx)
+  }
+
+  async swapQuestionPosition(surveyId: string, q1_id: string, q2_id: string) {
+
+    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = qInfo.questions ?? []
+
+    let q1_idx = -1
+    let q2_idx = -1
+
+    for (let i = 0; i < questions.length; i++) {
+      const element = questions[i];
+      if (element.id == q1_id) {
+        q1_idx = i
+      }
+
+      if (element.id == q2_id) {
+        q2_idx = i
+      }
+    }
+
+    if (q1_idx < 0 || q2_idx < 0 || q1_idx == q2_idx) {
+      return
+    }
+
+    await this.#swapQuestionIndex(surveyId, questions, q1_idx, q2_idx)
+  }
+
+  async upsertSurveyQuestion(surveyId: string, questionId: string, question: SurveyQuestion, updateStore = true) {
+
+    question.last_modified = new Date(Date.now())
+
+    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let questions = qInfo.questions ?? []
+    let filtered = questions.map(q => q.id === questionId ? { ...question } : q)
+
+    if (filtered.length == 0) {
+      filtered.push(question)
+    }
+
+
+    let data: CachedQuestions = {
+      survey_id: surveyId,
+      questions: filtered
+    }
+
+    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+
+    if (updateStore) {
+      SetStore("surveyQuestions", surveyId, (questions) =>
+        filtered
+      );
+    }
+  }
+
+  upsertQuestionError(surveyId: string, key: string, error: string) {
+
+    let errs = this.#surveyQuestionsErrors[surveyId]
+    if (!errs) {
+      errs = []
+    }
+
+    this.#surveyQuestionsErrors[surveyId] = [...errs, { field: key, value: error }]
 
     this.#save()
   }
 
-  addSurveyQuestion(surveyId: string, question: SurveyQuestion, updateStore = true) {
-    if (updateStore) {
+  removeAllQuestionError(surveyId: string, pattern: string) {
 
-      SetStore("surveyQuestions", surveyId, (prev = []) => [...prev, question]);
+    let errs = this.#surveyQuestionsErrors[surveyId]
+    if (!errs) {
+      return
     }
 
-    if (!this.#surveyQuestions[surveyId]) {
-      this.#surveyQuestions[surveyId] = []
-    }
-
-    this.#surveyQuestions[surveyId].push(question)
+    let reg = new RegExp(`${pattern}.*`)
+    this.#surveyQuestionsErrors[surveyId] = errs.filter(v => !reg.test(v.field))
+    SetStore("surveyQuestionsErrors", surveyId, (prev) => prev.filter(v => !reg.test(v.field)))
 
     this.#save()
-  };
+  }
 
-  upsertSurveyQuestion(surveyId: string, questionId: string, question: SurveyQuestion, updateStore = true) {
-    question.last_modified = new Date(Date.now())
+  removeQuestionError(surveyId: string, key: string) {
 
-    if (updateStore) {
-
-      if (Store.surveyQuestions[surveyId] && !!Store.surveyQuestions[surveyId].find(v => v.id == questionId)) {
-
-        SetStore("surveyQuestions", surveyId, (questions) =>
-          questions.map(q => q.id === questionId ? { ...question } : q)
-        );
-      } else {
-        this.addSurveyQuestion(surveyId, question)
-      }
+    let errs = this.#surveyQuestionsErrors[surveyId]
+    if (!errs) {
+      return
     }
 
-    if (this.#surveyQuestions[surveyId] && this.#surveyQuestions[surveyId].find(v => v.id == questionId)) {
-
-      this.#surveyQuestions[surveyId] = this.#surveyQuestions[surveyId].map(q => q.id === questionId ? { ...question } : q)
-    }
+    this.#surveyQuestionsErrors[surveyId] = errs.filter(v => v.field != key)
 
     this.#save()
+  }
+
+  handleQuestionError(err: ZodSafeParseResult<object>, key: string, surveyId: string) {
+    AppState.removeQuestionError(surveyId, key)
+
+    if (!Store.surveyQuestionsErrors[surveyId]) {
+      SetStore("surveyQuestionsErrors", surveyId, [])
+    }
+
+    SetStore("surveyQuestionsErrors", surveyId, (prev = []) =>
+      prev.filter(q => q.field !== key)
+    )
+
+    if (!err.error) {
+
+      return
+    }
+
+    let msg = err.error.issues[0].message
+
+    SetStore("surveyQuestionsErrors", surveyId, (prev = []) => {
+
+      return [...prev, { field: key, value: msg }]
+    })
+
+    AppState.upsertQuestionError(surveyId, key, msg)
   }
 }
 
 let AppState = new State()
 
 export default AppState
-
-
-
-

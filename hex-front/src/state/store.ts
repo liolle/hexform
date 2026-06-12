@@ -1,6 +1,6 @@
 import { createStore } from "solid-js/store";
 import { SurveyData } from "~/services/surveyService";
-import { SurveyQuestion } from "~/types";
+import { SurveyQuestion, SurveyQuestionError } from "~/types";
 
 export interface UserData {
   nickname: string
@@ -20,6 +20,7 @@ export interface StoreType {
   dashboardSurveys: SurveyData[]
   publcSurveys: SurveyData[]
   surveyQuestions: Record<string, SurveyQuestion[]>
+  surveyQuestionsErrors: Record<string, SurveyQuestionError[]>
 }
 
 export const [Store, SetStore] = createStore<StoreType>({
@@ -28,7 +29,8 @@ export const [Store, SetStore] = createStore<StoreType>({
   activeDashboardSurveyId: "",
   dashboardSurveys: [],
   publcSurveys: [],
-  surveyQuestions: {}
+  surveyQuestions: {},
+  surveyQuestionsErrors: {}
 })
 
 

@@ -18,8 +18,8 @@ const PublicSurveys: Component = () => {
 
 const SurveysBody = () => {
   return (
-    <div class="flex-1 flex bg-transparent flex flex-col gap-2 overflow-y-scroll  ">
-      <div class="h-fit min-h-screen  flex-[3_1_0]">
+    <div class="flex-1 flex bg-transparent flex flex-col gap-2">
+      <div class="h-fit min-h-screen">
         <For each={Store.publcSurveys}>
 
           {(item, index) =>

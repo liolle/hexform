@@ -1,5 +1,5 @@
 import { useNavigate } from "@solidjs/router";
-import { Component, createSelector, createSignal, Match, Show, Switch } from "solid-js";
+import { Component, Match, Show, Switch } from "solid-js";
 import { createStore } from "solid-js/store";
 import { AuthS } from "~/services/services";
 import AppState from "~/state/state";
@@ -23,7 +23,7 @@ const LoginForm: Component = () => {
 
     switch (response.result.status) {
       case 200:
-        let token = response.result.content.get("token")
+        let token = response.result.content["token"]
         if (!token) {
           return
         }
@@ -49,7 +49,7 @@ const LoginForm: Component = () => {
           <FormInput type="password" name="password" placeholder="Password" required={true} />
         </div>
 
-        <button class="btn btn-neutral">Login</button>
+        <button class="btn btn-neutral rounded-[.5rem] focus:outline-0">Login</button>
 
       </fieldset>
     </form>
@@ -71,7 +71,7 @@ const FormInput = (props: FormInputType) => {
       <input
         type={props.type}
         name={props.name}
-        class="input"
+        class="input rounded-[.5rem] focus:outline-0"
         required={props.required}
         placeholder={props.placeholder} />
 
