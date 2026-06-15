@@ -1,11 +1,16 @@
+import { useNavigate } from "@solidjs/router"
 import { AiOutlinePlus } from "solid-icons/ai"
 import { IoArrowBack } from "solid-icons/io"
 import { Component, Match, Switch } from "solid-js"
+import { SurveyS } from "~/services/surveyService"
 import AppState from "~/state/state"
 import { Store } from "~/state/store"
 
-let activeSurvey = () => Store.dashboardSurveys?.find(v => v.id == Store.activeDashboardSurveyId)
+
 const DashboardPanel: Component = () => {
+  const navigate = useNavigate()
+  let activeSurvey = () => Store.dashboardSurveys?.find(v => v.id == Store.activeDashboardSurveyId)
+
 
   const openSurveyQuestionModal = () => {
     let dialog = document.getElementById('create_survey_question_modal') as HTMLDialogElement
@@ -21,11 +26,19 @@ const DashboardPanel: Component = () => {
   }
 
   const previewSurvey = () => {
+    let surveyId = Store.activeDashboardSurveyId
+    if (!surveyId) {
+      return
+    }
+
+
+    SurveyS.invalidateSurvey(surveyId)
+    navigate(`/preview/${surveyId}`)
 
   }
 
   return (
-    <div class="h-12 bg-transparent border-b-1 border-base-100 flex justify-between items-center">
+    <div class="h-16 py-2 bg-transparent border-b-1 border-base-100 flex justify-between items-center">
       <Switch>
         <Match when={Store.activeDashboardSurveyId == ""}>
           <div>

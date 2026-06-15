@@ -1,12 +1,14 @@
 export enum DBStoreNames {
   API_CACHE = "apiCache",
-  LOCAL_QUESTIONS = "local_questions"
+  LOCAL_QUESTIONS = "local_questions",
+  SURVEY_ANSWERS = "survey_answers"
 }
 
 class Database {
   #name = "hexformDB"
-  #version = 2
+  #version = 3
   #db: IDBDatabase | null = null
+  #initialized = false
 
   constructor() {
     this.#init()
@@ -14,11 +16,17 @@ class Database {
 
   async #init() {
     return new Promise((resolve, reject) => {
+      if (this.#initialized) {
+        resolve(this)
+        return
+      }
+
       const request = indexedDB.open(this.#name, this.#version)
 
       request.onerror = () => reject(request.error)
       request.onsuccess = () => {
         this.#db = request.result
+        this.#initialized = true
         resolve(this)
       }
 
@@ -33,14 +41,20 @@ class Database {
         }
 
         if (!db.objectStoreNames.contains(DBStoreNames.LOCAL_QUESTIONS)) {
-          const localQuestions = db.createObjectStore(DBStoreNames.LOCAL_QUESTIONS, { keyPath: "survey_id" })
+          db.createObjectStore(DBStoreNames.LOCAL_QUESTIONS, { keyPath: "survey_id" })
+        }
+
+        if (!db.objectStoreNames.contains(DBStoreNames.SURVEY_ANSWERS)) {
+          db.createObjectStore(DBStoreNames.SURVEY_ANSWERS, { keyPath: "survey_id" })
         }
       }
     })
   }
 
   async get(storeName: DBStoreNames) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+
+      await this.#init()
       if (!this.#db) {
         reject("Db not opened")
         return
@@ -55,7 +69,8 @@ class Database {
   }
 
   async getFromKey(storeName: DBStoreNames, key: string) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      await this.#init()
       if (!this.#db) {
         reject("Db not opened")
         return

@@ -1,6 +1,6 @@
 import DB, { DBStoreNames } from "~/state/database"
 import Client, { ClientResponse } from "~/state/httpClient"
-import { CachedQuestions, SurveyQuestion } from "~/types"
+import { CachedQuestions, SurveyAnswer, SurveyAnswers, SurveyQuestion } from "~/types"
 
 
 
@@ -78,11 +78,12 @@ class SurveyService {
 
   /* Invalidate */
 
-  async invalidateSurvay(surveyId: string) {
+  async invalidateSurvey(surveyId: string) {
     let response = await this.getSurvey(surveyId, true)
-    if (!response.cached) {
+    if (response.result.status >= 300 || !response.cached) {
       return
     }
+
     let url = response.request.url.split("?")[0]
 
     let key = `${response.request.method}:${url}`
@@ -140,6 +141,41 @@ class SurveyService {
     return intersection
   }
 
+
+  async resolveAnswers(surveyId: string, answers: SurveyAnswers): Promise<SurveyAnswers> {
+
+    let savedAnswers = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId) as SurveyAnswers
+
+    if (!savedAnswers) {
+      return answers
+    }
+
+    let res: SurveyAnswers = {
+      survey_id: answers.survey_id,
+      position: savedAnswers.position,
+      responses: []
+    }
+
+    let map = new Map<string, SurveyAnswer>
+
+    for (const ans of savedAnswers.responses) {
+      map.set(ans.questionId, ans)
+    }
+
+
+    for (let i = 0; i < answers.responses.length; i++) {
+      let ans = answers.responses[i];
+      let saved = map.get(ans.questionId)
+      if (!saved) {
+        res.responses.push(ans)
+        continue
+      }
+      ans.response = saved.response
+      res.responses.push(ans)
+    }
+
+    return res
+  }
 }
 
 

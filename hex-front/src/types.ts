@@ -17,6 +17,21 @@ export interface SurveyQuestion {
   position: number
 }
 
+export interface SurveyAnswer {
+  questionId: string
+  type: SurveyQuestionType
+  title: string
+  config: string
+  response: string
+  position: number
+}
+
+export interface SurveyAnswers {
+  survey_id: string
+  position: number
+  responses: SurveyAnswer[]
+}
+
 export interface SurveyQuestionError {
   field: string
   value: string
@@ -26,6 +41,11 @@ export interface QuestionCardProps {
   surveyId: string
   questionId: string
   question: SurveyQuestion
+}
+
+export interface AnswerCardProps {
+  surveyId: string
+  answer: SurveyAnswer
 }
 
 export interface RatingConfig {
@@ -57,6 +77,7 @@ export interface SurveyData {
   owner_id: string
   is_public: boolean
   created_at: Date
+  questions: SurveyQuestion[]
 }
 
 // DB 

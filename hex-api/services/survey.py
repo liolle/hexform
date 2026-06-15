@@ -294,7 +294,7 @@ class SurveyService():
             return token_res
 
         if not "id" in token_res.keys["claims"]:
-            return Result(False,{"reason":"Malformed access token"})
+            return Result(False,{"reason":"Malformed access token" })
 
         user_id = token_res.keys["claims"]["id"]
         res = {}
@@ -311,7 +311,7 @@ class SurveyService():
                 survey = con.execute(stm).scalar_one_or_none()
 
                 if survey == None:
-                    return Result(False,{"reason": "Not found"})
+                    return Result(False,{"reason": "Not found", "status_code" : status.HTTP_404_NOT_FOUND })
 
                 # i have created the survey 
                 if survey.owner_id == user_id:

@@ -1,7 +1,7 @@
 import { SurveyS } from "~/services/surveyService";
 import { HomeTabType, SetStore, Store, UserData } from "./store"
 import { AuthS } from "~/services/services";
-import { CachedQuestions, SurveyData, SurveyQuestion, SurveyQuestionError } from "~/types";
+import { CachedQuestions, SurveyAnswer, SurveyAnswers, SurveyData, SurveyQuestion, SurveyQuestionError } from "~/types";
 import { ZodSafeParseResult } from "zod";
 import DB, { DBStoreNames } from "./database";
 
@@ -401,23 +401,79 @@ class State {
 
     let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
     let questions = qInfo.questions ?? []
-    let filtered = questions.map(q => q.id === questionId ? { ...question } : q)
+    let updated = questions.map(q => q.id === questionId ? { ...question } : q)
 
-    if (filtered.length == 0) {
-      filtered.push(question)
+    if (updated.length == 0) {
+      updated.push(question)
     }
 
 
     let data: CachedQuestions = {
       survey_id: surveyId,
-      questions: filtered
+      questions: updated
     }
 
     await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
 
     if (updateStore) {
       SetStore("surveyQuestions", surveyId, (questions) =>
-        filtered
+        updated
+      );
+    }
+  }
+
+  /* Survey submission*/
+
+  async upsertSurveyAnswersPosition(surveyId: string, position: number) {
+    let info = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId) as SurveyAnswers
+
+    if (!info) {
+      return
+    }
+
+    info.position = position
+
+    await DB.updateStore(DBStoreNames.SURVEY_ANSWERS, info)
+
+  }
+
+  async upsertSurveyAnswers(surveyId: string, questionId: string, answer: SurveyAnswer, updateStore = true) {
+    let info = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId) as SurveyAnswers
+
+    if (!info) {
+      info = {
+        survey_id: surveyId,
+        position: 0,
+        responses: [answer]
+      }
+    }
+    let included = false
+
+    let updated = info.responses.map(ans => {
+      if (ans.questionId === questionId) {
+        included = true
+
+      }
+      return ans.questionId === questionId ? { ...answer } : ans
+    })
+
+    if (!included) {
+      updated.push(answer)
+    }
+
+    let data: SurveyAnswers = {
+      survey_id: surveyId,
+      position: info.position,
+      responses: updated
+    }
+
+
+    await DB.updateStore(DBStoreNames.SURVEY_ANSWERS, data)
+
+
+    if (updateStore) {
+      SetStore("surveyAnswers", surveyId, (questions) =>
+        updated
       );
     }
   }

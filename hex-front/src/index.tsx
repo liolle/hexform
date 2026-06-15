@@ -23,6 +23,9 @@ const routes = [
     path: "/auth/:subpage?", component: lazy(() => import("@pages/authentication"))
   },
   {
+    path: "/preview/:id?", component: lazy(() => import("@pages/preview"))
+  },
+  {
     path: "/home", component: lazy(() => import("@pages/home"))
   },
   {

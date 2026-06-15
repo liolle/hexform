@@ -67,11 +67,11 @@ const QuestionCard: Component<QuestionCardProps> = (props: QuestionCardProps) =>
   return (
     <div class="relative">
       <div class="absolute top-[1rem] right-[.5rem] flex flex-col gap-2">
-        <button class="btn btn-soft btn-outline btn-accent rounded-[.25rem] p-0 w-8 h-4" onclick={pushUp}>
+        <button class="btn btn-soft btn-outline btn-info rounded-[.25rem] p-0 w-8 h-4" onclick={pushUp}>
           <AiFillCaretUp />
         </button>
 
-        <button class="btn btn-soft btn-outline btn-accent rounded-[.25rem] p-0 w-8 h-4" onclick={pushDown}>
+        <button class="btn btn-soft btn-outline btn-info rounded-[.25rem] p-0 w-8 h-4" onclick={pushDown}>
           <AiFillCaretDown />
         </button>
       </div>

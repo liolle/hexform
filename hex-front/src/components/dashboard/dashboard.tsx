@@ -18,7 +18,7 @@ const Dashboard: Component = () => {
   })
 
   return (
-    <div class="flex-1 p-[16px] flex flex-col gap-4">
+    <div class="flex-1 p-[16px] pt-0 flex flex-col gap-4">
 
       <CreateSurveyDialog />
       <DeleteSurveyDialog />

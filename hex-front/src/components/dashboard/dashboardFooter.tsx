@@ -88,7 +88,7 @@ const DashboardFooter: Component = () => {
 
         <Match when={!!Store.activeDashboardSurveyId}>
           <div class="flex flex-1 justify-between">
-            <button class="btn btn-info rounded-[.5rem]"
+            <button class="btn btn-soft btn-info rounded-[.5rem]"
               disabled={(() => {
                 const surveyErrors = Store.surveyQuestionsErrors?.[Store.activeDashboardSurveyId]
                 if (!surveyErrors) return false
@@ -103,7 +103,7 @@ const DashboardFooter: Component = () => {
                 Save
               </span>
             </button>
-            <button class="btn btn-error rounded-[.5rem]" onclick={openDeleteSurveyModal}>
+            <button class="btn btn-soft btn-error rounded-[.5rem]" onclick={openDeleteSurveyModal}>
               <span class="text-content text-sm font-medium">
                 Delete survey
               </span>
