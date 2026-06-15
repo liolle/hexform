@@ -68,7 +68,16 @@ const DashboardFooter: Component = () => {
       AppState.connected = false
       AppState.accessToken = ""
 
+      sending = false
+      return
     }
+
+    let data: CachedQuestions = {
+      survey_id: surveyId,
+      questions: res.result.content["questions"]
+    }
+
+    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
 
     sending = false
   }

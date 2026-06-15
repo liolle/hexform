@@ -8,13 +8,16 @@ import AppState from "~/state/state"
 import RatingAnswerCard from "./RatingAnswerCard"
 import NumberAnswerCard from "./NumberAnswerCard"
 import DB, { DBStoreNames } from "~/state/database"
+import { useNavigate } from "@solidjs/router"
 
 interface SurveyDisplayProps {
-  survey: SurveyData | undefined
+  survey: SurveyData | undefined,
+  preview: boolean
 }
 
 const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps) => {
 
+  const navigate = useNavigate()
   const [position, setPosition] = createSignal(0)
   const [answers, setAnswers] = createSignal<SurveyAnswer[]>([])
 
@@ -80,10 +83,19 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
       return
     }
 
-    let data = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, props.survey.id)
+    let data = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, props.survey.id) as SurveyAnswers
+    if (!data) {
+      return
+    }
 
+    await DB.deleteFromKey(DBStoreNames.SURVEY_ANSWERS, props.survey.id)
 
-    console.log(data)
+    if (props.preview) {
+      navigate("/home", { replace: true })
+
+    } else {
+      navigate("/home", { replace: true })
+    }
   }
 
   return (

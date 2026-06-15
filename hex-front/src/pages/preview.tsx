@@ -48,7 +48,7 @@ const PreviewPage: Component = () => {
           </span>
         </Match>
         <Match when={!!survey()}>
-          <SurveyDisplay survey={survey()} />
+          <SurveyDisplay survey={survey()} preview />
         </Match>
 
       </Switch>
