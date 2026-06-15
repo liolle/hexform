@@ -1,9 +1,9 @@
-import { Component, Match, Switch } from "solid-js"
+import { Component, Match, Show, Switch } from "solid-js"
 import { SurveyS } from "~/services/surveyService"
 import DB, { DBStoreNames } from "~/state/database"
 import AppState from "~/state/state"
 import { Store } from "~/state/store"
-import { CachedQuestions, SurveyQuestion } from "~/types"
+import { CachedQuestions, SurveyQuestion, SurveyState } from "~/types"
 
 
 const tempQid = new RegExp("TEMP-.*")
@@ -83,6 +83,9 @@ const DashboardFooter: Component = () => {
   }
 
 
+  let activeSurvey = () => Store.dashboardSurveys?.find(v => v.id == Store.activeDashboardSurveyId)
+
+
   return (
     <div class="h-12 bg-transparent flex items-center ">
       <Switch>
@@ -97,21 +100,25 @@ const DashboardFooter: Component = () => {
 
         <Match when={!!Store.activeDashboardSurveyId}>
           <div class="flex flex-1 justify-between">
-            <button class="btn btn-soft btn-info rounded-[.5rem]"
-              disabled={(() => {
-                const surveyErrors = Store.surveyQuestionsErrors?.[Store.activeDashboardSurveyId]
-                if (!surveyErrors) return false
+            <div>
+              <Show when={activeSurvey()?.state == SurveyState.CREATED}>
+                <button class="btn btn-soft btn-info rounded-[.5rem]"
+                  disabled={(() => {
+                    const surveyErrors = Store.surveyQuestionsErrors?.[Store.activeDashboardSurveyId]
+                    if (!surveyErrors) return false
 
-                // Check if any question has any non-empty error message
-                return Object.values(surveyErrors).some(questionErrors =>
-                  Object.values(questionErrors).some(error => error && error.trim() !== "")
-                )
-              })()}
-              onclick={SaveSurvey}>
-              <span class="text-content text-sm font-medium">
-                Save
-              </span>
-            </button>
+                    // Check if any question has any non-empty error message
+                    return Object.values(surveyErrors).some(questionErrors =>
+                      Object.values(questionErrors).some(error => error && error.trim() !== "")
+                    )
+                  })()}
+                  onclick={SaveSurvey}>
+                  <span class="text-content text-sm font-medium">
+                    Save
+                  </span>
+                </button>
+              </Show>
+            </div>
             <button class="btn btn-soft btn-error rounded-[.5rem]" onclick={openDeleteSurveyModal}>
               <span class="text-content text-sm font-medium">
                 Delete survey

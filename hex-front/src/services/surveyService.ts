@@ -14,6 +14,7 @@ class SurveyService {
       .withHeaders([
         ["Content-Type", "application/json"]
       ]).withAuth()
+      .withCache()
       .send()
 
     return response
@@ -76,18 +77,41 @@ class SurveyService {
     return response
   }
 
+  async publishSurvey(id: string): Promise<ClientResponse> {
+    let response = await Client.post(`surveys/${id}/publish`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+      .send()
+
+    return response
+  }
+
   /* Invalidate */
 
   async invalidateSurvey(surveyId: string) {
+    /*
     let response = await this.getSurvey(surveyId, true)
     if (response.result.status >= 300 || !response.cached) {
       return
     }
+    */
 
-    let url = response.request.url.split("?")[0]
 
-    let key = `${response.request.method}:${url}`
-    DB.deleteFromKey(DBStoreNames.API_CACHE, key)
+    let keys: [DBStoreNames, string][] = [
+      [DBStoreNames.API_CACHE, "surveys/created"],
+      [DBStoreNames.API_CACHE, "surveys/public"],
+      [DBStoreNames.API_CACHE, `surveys/${surveyId}`],
+    ]
+
+    //let url = response.request.url.split("?")[0]
+
+    //let key = `${response.request.method}:${url}`
+    //DB.deleteFromKey(DBStoreNames.API_CACHE, key)
+
+    for (const elem of keys) {
+      DB.deleteFromKey(elem[0], elem[1])
+    }
   }
 
 

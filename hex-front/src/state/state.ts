@@ -71,7 +71,6 @@ class State {
 
     } catch (error) {
       console.log("Failed to load state")
-      console.log(error, state)
     }
     this.#loaded = true
   }
@@ -176,6 +175,10 @@ class State {
     this.#activeDashboardSurveyId = id
     SetStore("activeDashboardSurveyId", id)
     this.#save()
+  }
+
+  updateDashboarSurveyFromSingle(survey: SurveyData) {
+    SetStore("dashboardSurveys", (prev) => prev.map(v => v.id == survey.id ? survey : v))
   }
 
   async updateDashboardSurveys() {

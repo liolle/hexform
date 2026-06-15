@@ -285,6 +285,44 @@ class SurveyService():
                 return Result(False,{"reason":"Could not get the surveys"})
 
 
+    def publish_survey_by_id(self,id:str, access_token:str)->Result:
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token" })
+
+        user_id = token_res.keys["claims"]["id"]
+        res = {}
+        stm = select(Surveys).where(Surveys.id == id)
+
+        with dbConnection() as con:
+            try:
+                survey = con.execute(stm).scalar_one_or_none()
+
+                if survey == None:
+                    return Result(False,{"reason": "Not found", "status_code" : status.HTTP_404_NOT_FOUND })
+
+                # i have created the survey 
+                if survey.owner_id != user_id:
+                    res["survey"] = survey
+                    return Result(False,{"reason": "Not authorized", "status_code" : status.HTTP_403_FORBIDDEN })
+
+                if survey.state != SurveyState.CREATED:
+                    return Result(False,{"reason": "Could not publish survey", "status_code" : status.HTTP_400_BAD_REQUEST })
+
+
+                survey.state = SurveyState.PUBLISHED 
+
+                con.commit()
+                con.refresh(survey)
+
+                res["survey"] = survey
+                return Result(True,res)
+            except Exception:
+                return Result(False,{"reason":"Could not get the survey"})
 
     def get_survey_by_id(self,id:str, access_token:str, key:str | None = None, include_questions = False)->Result:
 

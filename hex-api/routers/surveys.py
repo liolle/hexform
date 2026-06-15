@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from dto import CreateSurveyForm, UpdateSurveyQuestionForm
-from typing import TYPE_CHECKING
 from services import SurveyService, verify_token
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -25,8 +24,24 @@ def patch_survey_quetions(data:UpdateSurveyQuestionForm,
             detail= res.keys["reason"] 
         )
 
+    return res.keys
+
+@router.post("/surveys/{id}/publish")
+def publish_survey_quetions( 
+                id:str,
+                surveys:SurveyService = Depends(SurveyService),
+                credentials: HTTPAuthorizationCredentials = Depends(security)):
+
+    res = surveys.publish_survey_by_id(id,credentials.credentials)
+
+    if not res.success: 
+        raise HTTPException(
+            status_code=res.keys["status_code"] if "status_code" in res.keys else status.HTTP_400_BAD_REQUEST,
+            detail= res.keys["reason"] 
+        )
 
     return res.keys
+
 
 @router.get("/surveys/{id}/questions")
 def get_survey_quetions(id:str,
