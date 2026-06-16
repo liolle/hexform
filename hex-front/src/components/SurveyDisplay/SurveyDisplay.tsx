@@ -90,12 +90,13 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
 
     await DB.deleteFromKey(DBStoreNames.SURVEY_ANSWERS, props.survey.id)
 
-    if (props.preview) {
-      navigate("/home", { replace: true })
+    if (!props.preview) {
+      // Send survey
+      console.log("send", data)
 
-    } else {
-      navigate("/home", { replace: true })
     }
+
+    navigate("/home", { replace: true })
   }
 
   return (
@@ -106,27 +107,7 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
         </div>
       </div>
       <div class="flex flex-col flex-1 justify-center items-center">
-        <QuestionCard surveyId={props.survey.id} answer={answer()} />
-        <div class="flex justify-end w-[400px]">
-          <Switch>
-            <Match when={position() < answers().length - 1}>
-              <button class="btn btn-soft btn-primary rounded-[.5rem]" onclick={next}>
-                <span class="text-content text-sm font-medium">
-                  Continue
-                </span>
-              </button>
-            </Match>
-            <Match when={true}>
-              <button class="btn btn-soft btn-primary rounded-[.5rem]" onclick={submit}>
-                <span class="text-content text-sm font-medium">
-                  Submit
-                </span>
-              </button>
-            </Match>
-
-          </Switch>
-
-        </div>
+        <QuestionCard surveyId={props.survey.id} answer={answer()} position={position} setPosition={setPosition} answer_count={answers().length} is_preview={props.preview} />
       </div>
     </div>
   )
@@ -136,26 +117,24 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
 
 const QuestionCard: Component<AnswerCardProps> = (props: AnswerCardProps) => {
 
-
-
   return (
     <div class="">
       <Switch>
 
         <Match when={props.answer && props.answer.type == SurveyQuestionType.TEXT}>
-          <TextAnswerCard surveyId={props.surveyId} answer={props.answer} />
+          <TextAnswerCard data={props} />
         </Match>
 
         <Match when={props.answer && props.answer.type == SurveyQuestionType.BOOL}>
-          <BoolAnswerCard surveyId={props.surveyId} answer={props.answer} />
+          <BoolAnswerCard data={props} />
         </Match>
 
         <Match when={props.answer && props.answer.type == SurveyQuestionType.NUMBER}>
-          <NumberAnswerCard surveyId={props.surveyId} answer={props.answer} />
+          <NumberAnswerCard data={props} />
         </Match>
 
         <Match when={props.answer && props.answer.type == SurveyQuestionType.RATING}>
-          <RatingAnswerCard surveyId={props.surveyId} answer={props.answer} />
+          <RatingAnswerCard data={props} />
         </Match>
 
       </Switch>

@@ -1,27 +1,84 @@
-import { Component, createEffect, For } from "solid-js"
-import { SurveyData } from "~/services/surveyService"
+import { Component, createEffect, For, Match, Switch } from "solid-js"
 import AppState from "~/state/state"
 import { Store } from "~/state/store"
+import { SurveyData } from "~/types"
+import SurveysPanel from "./SurveysPanel"
+import { SurveyS } from "~/services/surveyService"
+import { useNavigate } from "@solidjs/router"
 
 
 const PublicSurveys: Component = () => {
-
+  const navigate = useNavigate()
   createEffect(async () => {
     AppState.updatePublicSurveys()
   })
 
+
+  const participate = () => {
+    let surveyId = Store.activeSurveyId
+    if (!surveyId) {
+      return
+    }
+
+    SurveyS.invalidateSurvey(surveyId)
+    navigate(`/survey/${surveyId}`)
+  }
+
+  let activeSurvey = () => Store.publcSurveys?.find(v => v.id == Store.activeSurveyId)
+
   return (
-    <SurveysBody />
+    <div class="flex-1 p-[16px] pt-0 flex flex-col gap-4">
+      <SurveysPanel />
+      <Surveys />
+
+      {
+        /*
+         *
+         *
+         *
+        <Switch>
+          <Match when={Store.activeSurveyId == ""}>
+            <Surveys />
+          </Match>
+          <Match when={Store.activeSurveyId != ""}>
+            <div class="flex flex-1  ">
+              <div class="flex w-fit h-24  w-full items-center justify-between">
+                <div class=" relative h-24 border-base-100 p-1 border-b-1 rounded-[0.25rem] select-none flex flex-col ">
+                  <div class="max-w-[400px]">
+                    <span class="text-content text-sm font-medium"> {activeSurvey()?.title} </span>
+                  </div>
+                  <div class="max-w-[400px] wrap-anywhere leading-none">
+                    <span class=" text-content text-xs opacity-60"> {activeSurvey()?.description} </span>
+                  </div>
+                </div>
+
+                <button class="btn btn-soft btn-primary rounded-[.5rem]" onclick={participate}>
+                  <span class="text-content text-sm font-medium">
+                    Participate
+                  </span>
+                </button>
+              </div>
+
+
+            </div>
+          </Match>
+        </Switch>
+
+         *
+         * */
+      }
+
+    </div>
+
   )
 }
 
 
-const SurveysBody = () => {
+const Surveys = () => {
   return (
     <div class="flex-1 flex bg-transparent flex flex-col gap-2">
       <div class="h-fit min-h-screen">
         <For each={Store.publcSurveys}>
-
           {(item, index) =>
             <SurveyCard data={item} />
           }
@@ -37,16 +94,34 @@ interface SurveysCardProps {
 }
 
 const SurveyCard = (props: SurveysCardProps) => {
+  const navigate = useNavigate()
+
+  const participate = () => {
+    let surveyId = props.data.id
+    if (!surveyId) {
+      return
+    }
+
+    SurveyS.invalidateSurvey(surveyId)
+    navigate(`/survey/${surveyId}`)
+  }
 
   return (
-    <div class=" relative h-24 border-base-100 p-1 border-b-1 rounded-[0.25rem] select-none flex flex-col cursor-pointer hover:bg-base-100"
-    >
-      <div class="max-w-[400px]">
-        <span class="text-content text-sm font-medium"> {props.data.title} </span>
+    <div class=" relative h-24 border-base-100 p-1 border-b-1 rounded-[0.25rem] select-none flex justify-between cursor-pointer">
+      <div class="max-w-[400px] flex flex-col self-start">
+        <div class="max-w-[400px]">
+          <span class="text-content text-sm font-medium"> {props.data.title} </span>
+        </div>
+        <div class="max-w-[400px] wrap-anywhere leading-none">
+          <span class=" text-content text-xs opacity-60"> {props.data.description} </span>
+        </div>
       </div>
-      <div class="max-w-[400px] wrap-anywhere leading-none">
-        <span class=" text-content text-xs opacity-60"> {props.data.description} </span>
-      </div>
+
+      <button class="btn btn-soft btn-primary rounded-[.5rem] self-end" onclick={participate}>
+        <span class="text-content text-sm font-medium">
+          Participate
+        </span>
+      </button>
     </div>
   )
 }

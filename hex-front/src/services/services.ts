@@ -1,3 +1,4 @@
+import DB, { DBStoreNames } from "~/state/database"
 import Client, { ClientResponse } from "~/state/httpClient"
 import AppState from "~/state/state"
 
@@ -17,7 +18,7 @@ class AuthService {
 
   async logout() {
     AppState.accessToken = undefined
-    AppState.connected = false
+    await DB.deleteFromKey(DBStoreNames.API_CACHE, "")
     return
   }
 

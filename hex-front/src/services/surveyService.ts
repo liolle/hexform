@@ -87,27 +87,32 @@ class SurveyService {
     return response
   }
 
+  async sendSurvey(surveyId: string, is_preview: boolean): Promise<boolean> {
+
+    let data = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId) as SurveyAnswers
+    if (!data) {
+      return false
+    }
+
+    await DB.deleteFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId)
+
+    if (is_preview) {
+      // Send survey
+      console.log("send", data)
+    }
+    return true
+
+  }
+
   /* Invalidate */
 
   async invalidateSurvey(surveyId: string) {
-    /*
-    let response = await this.getSurvey(surveyId, true)
-    if (response.result.status >= 300 || !response.cached) {
-      return
-    }
-    */
-
 
     let keys: [DBStoreNames, string][] = [
       [DBStoreNames.API_CACHE, "surveys/created"],
       [DBStoreNames.API_CACHE, "surveys/public"],
       [DBStoreNames.API_CACHE, `surveys/${surveyId}`],
     ]
-
-    //let url = response.request.url.split("?")[0]
-
-    //let key = `${response.request.method}:${url}`
-    //DB.deleteFromKey(DBStoreNames.API_CACHE, key)
 
     for (const elem of keys) {
       DB.deleteFromKey(elem[0], elem[1])
@@ -129,6 +134,7 @@ class SurveyService {
       DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
     }
 
+
     let intersection: SurveyQuestion[] = []
     let qMap = new Map<string, SurveyQuestion>()
 
@@ -136,28 +142,21 @@ class SurveyService {
       qMap.set(q.id, q)
     }
 
-    let pattern = "^TEMP-.*"
-    let exp = new RegExp(pattern)
-
     for (const q of local_questions.questions) {
-      if (exp.test(q.id)) {
-        intersection.push(q)
-        continue
-      }
-
       let qx = qMap.get(q.id)
       if (!qx) {
+        qMap.set(q.id, q)
         continue
       }
+      let d1 = new Date(q.last_modified)
+      let d2 = new Date(qx.last_modified)
 
-      if (qx.last_modified < q.last_modified) {
-
-        intersection.push(q)
-      } else {
-
-        intersection.push(qx)
+      if (d1 > d2) {
+        qMap.set(q.id, q)
       }
     }
+
+    intersection = qMap.values().toArray()
 
     data.questions = intersection
     DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)

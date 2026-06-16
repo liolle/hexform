@@ -1,18 +1,25 @@
-import { Component, For } from "solid-js";
+import { useNavigate } from "@solidjs/router";
+import { Component, For, Match, Show, Switch } from "solid-js";
 import { number } from "zod";
+import { SurveyS } from "~/services/surveyService";
 import AppState from "~/state/state";
+import { Store } from "~/state/store";
 import { AnswerCardProps, RatingConfig } from "~/types";
 
+interface PropsType {
+  data: AnswerCardProps
+}
 
 
-const RatingAnswerCard: Component<AnswerCardProps> = (props) => {
+const RatingAnswerCard: Component<PropsType> = (props) => {
 
+  const navigate = useNavigate()
 
   let config: RatingConfig = { max: 2 }
 
   try {
 
-    config = JSON.parse(props.answer.config) as RatingConfig
+    config = JSON.parse(props.data.answer.config) as RatingConfig
 
   } catch (error) {
 
@@ -23,10 +30,33 @@ const RatingAnswerCard: Component<AnswerCardProps> = (props) => {
     const target = e.target as HTMLInputElement;
     const newValue = target.value;
 
-    let answer = props.answer
+    let answer = props.data.answer
     answer.response = newValue
 
-    AppState.upsertSurveyAnswers(props.surveyId, answer.questionId, answer)
+    AppState.upsertSurveyAnswers(props.data.surveyId, answer.questionId, answer)
+  }
+
+  let errors = () => {
+    let sErr = Store.surveyAnswersErrors[props.data.surveyId] ?? []
+    return sErr.filter(v => {
+      let rexp = new RegExp(`${props.data.answer.questionId}:.*`)
+      return rexp.test(v.field)
+    }).map(v => v.value)
+  }
+
+  const next = () => {
+    let n = Math.min(props.data.answer_count - 1, props.data.position() + 1)
+    props.data.setPosition(n)
+    AppState.upsertSurveyAnswersPosition(props.data.surveyId, n)
+  }
+
+  const submit = async () => {
+    let success = await SurveyS.sendSurvey(props.data.surveyId, props.data.is_preview)
+    if (!success) {
+      return
+    }
+
+    navigate("/home", { replace: true })
   }
 
   return (
@@ -35,7 +65,7 @@ const RatingAnswerCard: Component<AnswerCardProps> = (props) => {
 
       <div class="flex justify-start h-[100px]">
         <span class="text-content text-md italic font-bold">
-          {props.answer.title}
+          {props.data.answer.title}
         </span>
       </div>
 
@@ -48,7 +78,7 @@ const RatingAnswerCard: Component<AnswerCardProps> = (props) => {
                 name="rating-4"
                 checked={(
                   () => {
-                    let r = props.answer.response
+                    let r = props.data.answer.response
                     if (!r) {
                       return false
                     }
@@ -68,6 +98,31 @@ const RatingAnswerCard: Component<AnswerCardProps> = (props) => {
           </For>
         </div>
       </div>
+      <Show when={errors().length > 0}>
+        <span class="text-error text-xs h-[2rem] overflow-hidden">
+          {errors()[0]}
+        </span>
+      </Show>
+
+      <div class="flex justify-end w-[400px]">
+        <Switch>
+          <Match when={props.data.position() < props.data.answer_count - 1}>
+            <button class="btn btn-soft btn-primary rounded-[.5rem]" onclick={next}>
+              <span class="text-content text-sm font-medium">
+                Continue
+              </span>
+            </button>
+          </Match>
+          <Match when={true}>
+            <button class="btn btn-soft btn-primary rounded-[.5rem]" onclick={submit}>
+              <span class="text-content text-sm font-medium">
+                Submit
+              </span>
+            </button>
+          </Match>
+        </Switch>
+      </div>
+
     </div>
   )
 

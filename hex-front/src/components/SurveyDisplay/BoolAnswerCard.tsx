@@ -1,21 +1,53 @@
-import { Component } from "solid-js";
+import { useNavigate } from "@solidjs/router";
+import { Component, Match, Show, Switch } from "solid-js";
+import { SurveyS } from "~/services/surveyService";
+import DB, { DBStoreNames } from "~/state/database";
 import AppState from "~/state/state";
-import { AnswerCardProps, BoolConfig } from "~/types";
+import { Store } from "~/state/store";
+import { AnswerCardProps, BoolConfig, SurveyAnswers } from "~/types";
 
+interface PropsType {
+  data: AnswerCardProps
+}
 
+const BoolAnswerCard: Component<PropsType> = (props) => {
+  const navigate = useNavigate()
 
-const BoolAnswerCard: Component<AnswerCardProps> = (props) => {
+  let config = JSON.parse(props.data.answer.config) as BoolConfig
 
-  let config = JSON.parse(props.answer.config) as BoolConfig
+  const handleError = () => {
+  }
 
   const handleInput = (e: InputEvent) => {
-
     const target = e.target as HTMLInputElement;
     const value = target.value;
 
-    let answer = props.answer
+    let answer = props.data.answer
     answer.response = value
-    AppState.upsertSurveyAnswers(props.surveyId, answer.questionId, answer)
+    AppState.upsertSurveyAnswers(props.data.surveyId, answer.questionId, answer)
+  }
+
+  let errors = () => {
+    let sErr = Store.surveyAnswersErrors[props.data.surveyId] ?? []
+    return sErr.filter(v => {
+      let rexp = new RegExp(`${props.data.answer.questionId}:.*`)
+      return rexp.test(v.field)
+    }).map(v => v.value)
+  }
+
+  const next = () => {
+    let n = Math.min(props.data.answer_count - 1, props.data.position() + 1)
+    props.data.setPosition(n)
+    AppState.upsertSurveyAnswersPosition(props.data.surveyId, n)
+  }
+
+  const submit = async () => {
+    let success = await SurveyS.sendSurvey(props.data.surveyId, props.data.is_preview)
+    if (!success) {
+      return
+    }
+
+    navigate("/home", { replace: true })
   }
 
   return (
@@ -24,7 +56,7 @@ const BoolAnswerCard: Component<AnswerCardProps> = (props) => {
 
       <div class="flex justify-start h-[100px]">
         <span class="text-content text-md italic font-bold">
-          {props.answer.title}
+          {props.data.answer.title}
         </span>
       </div>
 
@@ -35,7 +67,7 @@ const BoolAnswerCard: Component<AnswerCardProps> = (props) => {
             name="radio-4"
             value="true"
             onInput={handleInput}
-            class="radio radio-primary" checked={props.answer.response == "true"} />
+            class="radio radio-primary" checked={props.data.answer.response == "true"} />
           <span class=" text-sm">
             {config.trueLabel ?? "True"}
           </span>
@@ -46,12 +78,35 @@ const BoolAnswerCard: Component<AnswerCardProps> = (props) => {
             name="radio-4"
             value="false"
             onInput={handleInput}
-            class="radio radio-primary" checked={props.answer.response == "false"} />
+            class="radio radio-primary" checked={props.data.answer.response == "false"} />
           <span class=" text-sm">
             {config.falseLabel ?? "False"}
           </span>
         </div>
+      </div>
+      <Show when={errors().length > 0}>
+        <span class="text-error text-xs h-[2rem] overflow-hidden">
+          {errors()[0]}
+        </span>
+      </Show>
 
+      <div class="flex justify-end w-[400px]">
+        <Switch>
+          <Match when={props.data.position() < props.data.answer_count - 1}>
+            <button class="btn btn-soft btn-primary rounded-[.5rem]" onclick={next}>
+              <span class="text-content text-sm font-medium">
+                Continue
+              </span>
+            </button>
+          </Match>
+          <Match when={true}>
+            <button class="btn btn-soft btn-primary rounded-[.5rem]" onclick={submit}>
+              <span class="text-content text-sm font-medium">
+                Submit
+              </span>
+            </button>
+          </Match>
+        </Switch>
       </div>
     </div>
   )

@@ -26,6 +26,9 @@ const routes = [
     path: "/preview/:id?", component: lazy(() => import("@pages/preview"))
   },
   {
+    path: "/survey/:id?", component: lazy(() => import("@pages/survey"))
+  },
+  {
     path: "/home", component: lazy(() => import("@pages/home"))
   },
   {

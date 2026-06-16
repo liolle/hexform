@@ -1,9 +1,10 @@
 import { SurveyS } from "~/services/surveyService";
-import { HomeTabType, SetStore, Store, UserData } from "./store"
+import { HomeTabType, SetStore, Store, StoreType, UserData } from "./store"
 import { AuthS } from "~/services/services";
 import { CachedQuestions, SurveyAnswer, SurveyAnswers, SurveyData, SurveyQuestion, SurveyQuestionError } from "~/types";
 import { ZodSafeParseResult } from "zod";
 import DB, { DBStoreNames } from "./database";
+import { unwrap } from "solid-js/store";
 
 function decodeJWT(token: string) {
   try {
@@ -23,26 +24,15 @@ function decodeJWT(token: string) {
 class State {
   static NAME = "hexform-state"
 
+  #state: StoreType = unwrap(Store)
   #loaded = false
-  #connected = false
-  #accessToken: string | undefined = undefined
-  #activeHomeTab: HomeTabType = HomeTabType.DASHBOARD
-  #activeDashboardSurveyId: string = ""
-  #surveyQuestionsErrors: Record<string, SurveyQuestionError[]> = {}
-
 
   constructor() {
     this.#load()
   }
 
   #save() {
-    localStorage.setItem(State.NAME, JSON.stringify({
-      connected: this.connected,
-      accessToken: this.accessToken,
-      activeHomeTab: this.activeHomeTab,
-      activeDashboardSurveyId: this.#activeDashboardSurveyId,
-      surveyQuestionsErrors: JSON.stringify(this.#surveyQuestionsErrors),
-    }))
+    localStorage.setItem(State.NAME, JSON.stringify(this.#state))
   }
 
   #load() {
@@ -54,20 +44,8 @@ class State {
     }
 
     try {
-      let jsonState = JSON.parse(state)
-
-      this.#connected = jsonState["connected"] ?? false
-      this.#accessToken = jsonState["accessToken"]
-      this.#activeHomeTab = jsonState["activeHomeTab"]
-      this.#activeDashboardSurveyId = jsonState["activeDashboardSurveyId"]
-
-
-      this.#setClaims(this.#accessToken)
-      SetStore("activeHomeTab", this.#activeHomeTab)
-      SetStore("activeDashboardSurveyId", this.#activeDashboardSurveyId)
-
-      const parsedQuestionsErrors: Record<string, SurveyQuestionError[]> = jsonState["surveyQuestionsErrors"] ? JSON.parse(jsonState["surveyQuestionsErrors"]) : {};
-      SetStore("surveyQuestionsErrors", parsedQuestionsErrors)
+      this.#state = JSON.parse(state)
+      SetStore(this.#state)
 
     } catch (error) {
       console.log("Failed to load state")
@@ -76,15 +54,13 @@ class State {
   }
 
 
-
-
   // Getter
   get accessToken(): string | undefined {
     if (!this.#loaded) {
       this.#load()
     }
 
-    return this.#accessToken
+    return this.#state.accessToken
   }
 
   get activeDashboardSurveyId(): string {
@@ -92,7 +68,7 @@ class State {
       this.#load()
     }
 
-    return this.#activeDashboardSurveyId
+    return this.#state.activeDashboardSurveyId
   }
 
 
@@ -100,7 +76,8 @@ class State {
     if (!this.#loaded) {
       this.#load()
     }
-    return this.#connected
+
+    return this.#state.user != undefined
   }
 
   get activeHomeTab(): HomeTabType {
@@ -108,8 +85,7 @@ class State {
       this.#load()
     }
 
-
-    return this.#activeHomeTab
+    return this.#state.activeHomeTab
   }
 
   #setClaims(token: string | undefined) {
@@ -126,14 +102,18 @@ class State {
           }
 
           SetStore("user", user)
+          this.#state.user = user
         }
 
       } catch (error) {
         SetStore("user", undefined)
+
+        this.#state.user = undefined
       }
 
     } else {
       SetStore("user", undefined)
+      this.#state.user = undefined
     }
   }
 
@@ -143,7 +123,8 @@ class State {
       return
     }
 
-    this.#accessToken = token
+    this.#state.accessToken = token ?? ""
+
     this.#setClaims(token)
     this.#save()
   }
@@ -153,26 +134,28 @@ class State {
       return
     }
 
-    this.#activeHomeTab = tab
-    SetStore("activeHomeTab", this.#activeHomeTab)
+    this.#state.activeHomeTab = tab
+    SetStore("activeHomeTab", this.#state.activeHomeTab)
     this.#save()
   }
 
-  set connected(connected: boolean) {
-    if (this.connected == connected) {
+  set activeSurveyId(id: string) {
+    if (this.activeSurveyId == id) {
       return
     }
 
-    this.#connected = connected
+    this.#state.activeSurveyId = id
+    SetStore("activeSurveyId", id)
     this.#save()
   }
+
 
   set activeDashboardSurveyId(id: string) {
     if (this.activeDashboardSurveyId == id) {
       return
     }
 
-    this.#activeDashboardSurveyId = id
+    this.#state.activeDashboardSurveyId = id
     SetStore("activeDashboardSurveyId", id)
     this.#save()
   }
@@ -470,9 +453,7 @@ class State {
       responses: updated
     }
 
-
     await DB.updateStore(DBStoreNames.SURVEY_ANSWERS, data)
-
 
     if (updateStore) {
       SetStore("surveyAnswers", surveyId, (questions) =>
@@ -483,39 +464,73 @@ class State {
 
   upsertQuestionError(surveyId: string, key: string, error: string) {
 
-    let errs = this.#surveyQuestionsErrors[surveyId]
+    let errs = this.#state.surveyQuestionsErrors[surveyId]
     if (!errs) {
       errs = []
     }
 
-    this.#surveyQuestionsErrors[surveyId] = [...errs, { field: key, value: error }]
+    this.#state.surveyQuestionsErrors[surveyId] = [...errs, { field: key, value: error }]
+    this.#save()
+  }
 
+  upsertAnswerError(surveyId: string, key: string, error: string) {
+
+    let errs = this.#state.surveyAnswersErrors[surveyId]
+    if (!errs) {
+      errs = []
+    }
+
+    this.#state.surveyAnswersErrors[surveyId] = [...errs, { field: key, value: error }]
     this.#save()
   }
 
   removeAllQuestionError(surveyId: string, pattern: string) {
 
-    let errs = this.#surveyQuestionsErrors[surveyId]
+    let errs = this.#state.surveyQuestionsErrors[surveyId]
     if (!errs) {
       return
     }
 
     let reg = new RegExp(`${pattern}.*`)
-    this.#surveyQuestionsErrors[surveyId] = errs.filter(v => !reg.test(v.field))
+    this.#state.surveyQuestionsErrors[surveyId] = errs.filter(v => !reg.test(v.field))
     SetStore("surveyQuestionsErrors", surveyId, (prev) => prev.filter(v => !reg.test(v.field)))
+
+    this.#save()
+  }
+
+  removeAllAnswersError(surveyId: string, pattern: string) {
+
+    let errs = this.#state.surveyAnswersErrors[surveyId]
+    if (!errs) {
+      return
+    }
+
+    let reg = new RegExp(`${pattern}.*`)
+    this.#state.surveyAnswersErrors[surveyId] = errs.filter(v => !reg.test(v.field))
+    SetStore("surveyAnswersErrors", surveyId, (prev) => prev.filter(v => !reg.test(v.field)))
 
     this.#save()
   }
 
   removeQuestionError(surveyId: string, key: string) {
 
-    let errs = this.#surveyQuestionsErrors[surveyId]
+    let errs = this.#state.surveyQuestionsErrors[surveyId]
     if (!errs) {
       return
     }
 
-    this.#surveyQuestionsErrors[surveyId] = errs.filter(v => v.field != key)
+    this.#state.surveyQuestionsErrors[surveyId] = errs.filter(v => v.field != key)
+    this.#save()
+  }
 
+  removeAnswerError(surveyId: string, key: string) {
+
+    let errs = this.#state.surveyAnswersErrors[surveyId]
+    if (!errs) {
+      return
+    }
+
+    this.#state.surveyAnswersErrors[surveyId] = errs.filter(v => v.field != key)
     this.#save()
   }
 

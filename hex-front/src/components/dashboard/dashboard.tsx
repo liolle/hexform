@@ -23,6 +23,7 @@ const Dashboard: Component = () => {
       <CreateSurveyDialog />
       <DeleteSurveyDialog />
       <CreateQuestionDialog />
+
       <DashboardPanel />
 
       <Switch>

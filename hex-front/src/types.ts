@@ -1,3 +1,4 @@
+import { Accessor, Setter } from "solid-js"
 import { int } from "zod/mini"
 
 export enum SurveyQuestionType {
@@ -44,8 +45,13 @@ export interface QuestionCardProps {
 }
 
 export interface AnswerCardProps {
+
   surveyId: string
+  answer_count: number
+  is_preview: boolean
   answer: SurveyAnswer
+  position: Accessor<number>
+  setPosition: Setter<number>
 }
 
 export interface RatingConfig {

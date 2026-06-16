@@ -5,7 +5,7 @@ import { SurveyS } from "~/services/surveyService";
 import { SurveyData } from "~/types";
 
 
-const PreviewPage: Component = () => {
+const SurveyCompletionPage: Component = () => {
   const params = useParams();
   const [survey, setSurvey] = createSignal<SurveyData | undefined>()
 
@@ -47,7 +47,7 @@ const PreviewPage: Component = () => {
           </span>
         </Match>
         <Match when={!!survey()}>
-          <SurveyDisplay survey={survey()} preview />
+          <SurveyDisplay survey={survey()} preview={false} />
         </Match>
       </Switch>
     </div>
@@ -56,4 +56,4 @@ const PreviewPage: Component = () => {
 }
 
 
-export default PreviewPage
+export default SurveyCompletionPage
