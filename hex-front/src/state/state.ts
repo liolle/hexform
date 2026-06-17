@@ -1,8 +1,8 @@
 import { SurveyS } from "~/services/surveyService";
-import { HomeTabType, SetStore, Store, StoreType, UserData } from "./store"
+import { HomeTabType, SetStore, Store, UserData } from "./store"
 import { AuthS } from "~/services/services";
-import { CachedQuestions, SurveyAnswer, SurveyAnswers, SurveyData, SurveyQuestion, SurveyQuestionError } from "~/types";
-import { ZodSafeParseResult } from "zod";
+import { CachedQuestions, NumberConfig, SurveyAnswer, SurveyAnswers, SurveyData, SurveyQuestion, SurveyQuestionType } from "~/types";
+import z, { ZodSafeParseResult } from "zod";
 import DB, { DBStoreNames } from "./database";
 import { unwrap } from "solid-js/store";
 
@@ -24,68 +24,25 @@ function decodeJWT(token: string) {
 class State {
   static NAME = "hexform-state"
 
-  #state: StoreType = unwrap(Store)
-  #loaded = false
-
-  constructor() {
-    this.#load()
-  }
-
-  #save() {
-    localStorage.setItem(State.NAME, JSON.stringify(this.#state))
-  }
-
-  #load() {
-
-    let state = localStorage.getItem(State.NAME)
-
-    if (!state) {
-      return
-    }
-
-    try {
-      this.#state = JSON.parse(state)
-      SetStore(this.#state)
-
-    } catch (error) {
-      console.log("Failed to load state")
-    }
-    this.#loaded = true
-  }
+  constructor() { }
 
 
   // Getter
   get accessToken(): string | undefined {
-    if (!this.#loaded) {
-      this.#load()
-    }
-
-    return this.#state.accessToken
+    return Store.accessToken
   }
 
   get activeDashboardSurveyId(): string {
-    if (!this.#loaded) {
-      this.#load()
-    }
-
-    return this.#state.activeDashboardSurveyId
+    return Store.activeDashboardSurveyId
   }
 
 
   get connected(): boolean {
-    if (!this.#loaded) {
-      this.#load()
-    }
-
-    return this.#state.user != undefined
+    return Store.user != undefined
   }
 
   get activeHomeTab(): HomeTabType {
-    if (!this.#loaded) {
-      this.#load()
-    }
-
-    return this.#state.activeHomeTab
+    return Store.activeHomeTab
   }
 
   #setClaims(token: string | undefined) {
@@ -102,73 +59,49 @@ class State {
           }
 
           SetStore("user", user)
-          this.#state.user = user
+          SetStore("accessToken", token)
         }
 
       } catch (error) {
         SetStore("user", undefined)
-
-        this.#state.user = undefined
+        SetStore("accessToken", "")
       }
 
     } else {
       SetStore("user", undefined)
-      this.#state.user = undefined
+      SetStore("accessToken", "")
     }
   }
 
   // Setter
   set accessToken(token: string | undefined) {
-    if (this.accessToken == token) {
-      return
-    }
-
-    this.#state.accessToken = token ?? ""
-
     this.#setClaims(token)
-    this.#save()
   }
 
   set activeHomeTab(tab: HomeTabType) {
-    if (this.activeHomeTab == tab) {
-      return
-    }
-
-    this.#state.activeHomeTab = tab
-    SetStore("activeHomeTab", this.#state.activeHomeTab)
-    this.#save()
+    SetStore("activeHomeTab", tab)
   }
 
   set activeSurveyId(id: string) {
-    if (this.activeSurveyId == id) {
-      return
-    }
-
-    this.#state.activeSurveyId = id
     SetStore("activeSurveyId", id)
-    this.#save()
   }
 
 
   set activeDashboardSurveyId(id: string) {
-    if (this.activeDashboardSurveyId == id) {
-      return
-    }
-
-    this.#state.activeDashboardSurveyId = id
     SetStore("activeDashboardSurveyId", id)
-    this.#save()
   }
 
   updateDashboarSurveyFromSingle(survey: SurveyData) {
     SetStore("dashboardSurveys", (prev) => prev.map(v => v.id == survey.id ? survey : v))
   }
 
+
   async updateDashboardSurveys() {
 
     let res = await SurveyS.getCreateSurveys()
     if (res.result.status == 401) {
-      AuthS.logout()
+      await AuthS.logout()
+      return
     }
 
     let data = res.result.content["surveys"] as any[]
@@ -196,7 +129,8 @@ class State {
 
     let res = await SurveyS.getPublicSurveys()
     if (res.result.status == 401) {
-      AuthS.logout()
+      await AuthS.logout()
+      return
     }
 
     let data = res.result.content["surveys"] as any[]
@@ -256,7 +190,7 @@ class State {
       );
     }
 
-    this.removeAllQuestionError(surveyId, questionId)
+    this.removeQuestionError(surveyId, questionId)
   }
 
   async addSurveyQuestion(surveyId: string, question: SurveyQuestion, updateStore = true) {
@@ -464,74 +398,172 @@ class State {
 
   upsertQuestionError(surveyId: string, key: string, error: string) {
 
-    let errs = this.#state.surveyQuestionsErrors[surveyId]
-    if (!errs) {
-      errs = []
+    let err = unwrap(Store.surveyQuestionsErrors[surveyId])
+    let included = false
+
+    let updated = err.map(ans => {
+      if (ans.key === key) {
+        included = true
+
+      }
+      return ans.key === key ? { ...ans, value: error } : ans
+    })
+
+    if (!included) {
+      updated.push({
+        key: key,
+        value: error
+      })
     }
 
-    this.#state.surveyQuestionsErrors[surveyId] = [...errs, { field: key, value: error }]
-    this.#save()
+
+    SetStore("surveyQuestionsErrors", surveyId, (prev) =>
+      updated
+    )
+
   }
 
   upsertAnswerError(surveyId: string, key: string, error: string) {
 
-    let errs = this.#state.surveyAnswersErrors[surveyId]
-    if (!errs) {
-      errs = []
+    let err = unwrap(Store.surveyAnswersErrors[surveyId])
+    let included = false
+
+    let updated = err.map(ans => {
+      if (ans.key === key) {
+        included = true
+
+      }
+      return ans.key === key ? { ...ans, value: error } : ans
+    })
+
+    if (!included) {
+      updated.push({
+        key: key,
+        value: error
+      })
     }
 
-    this.#state.surveyAnswersErrors[surveyId] = [...errs, { field: key, value: error }]
-    this.#save()
+    SetStore("surveyAnswersErrors", surveyId, (prev) =>
+      updated
+    )
   }
 
-  removeAllQuestionError(surveyId: string, pattern: string) {
-
-    let errs = this.#state.surveyQuestionsErrors[surveyId]
-    if (!errs) {
-      return
-    }
-
+  removeQuestionError(surveyId: string, pattern: string) {
     let reg = new RegExp(`${pattern}.*`)
-    this.#state.surveyQuestionsErrors[surveyId] = errs.filter(v => !reg.test(v.field))
-    SetStore("surveyQuestionsErrors", surveyId, (prev) => prev.filter(v => !reg.test(v.field)))
+    if (!Store.surveyAnswersErrors[surveyId]) {
+      SetStore("surveyQuestionsErrors", surveyId, [])
+    }
+    SetStore("surveyQuestionsErrors", surveyId, (prev) => prev?.filter(v => !reg.test(v.key)))
 
-    this.#save()
   }
 
-  removeAllAnswersError(surveyId: string, pattern: string) {
-
-    let errs = this.#state.surveyAnswersErrors[surveyId]
-    if (!errs) {
-      return
-    }
-
+  removeAnswerError(surveyId: string, pattern: string) {
     let reg = new RegExp(`${pattern}.*`)
-    this.#state.surveyAnswersErrors[surveyId] = errs.filter(v => !reg.test(v.field))
-    SetStore("surveyAnswersErrors", surveyId, (prev) => prev.filter(v => !reg.test(v.field)))
-
-    this.#save()
+    if (!Store.surveyAnswersErrors[surveyId]) {
+      SetStore("surveyAnswersErrors", surveyId, [])
+    }
+    SetStore("surveyAnswersErrors", surveyId, (prev) => prev?.filter(v => !reg.test(v.key)))
   }
 
-  removeQuestionError(surveyId: string, key: string) {
+  handleAnswerError(surveyId: string, answer: SurveyQuestion) {
+    let key = `${answer.id}:value`
+    let content = Store.surveyAnswers[surveyId].find(v => v.questionId == answer.id)?.response ?? ""
 
-    let errs = this.#state.surveyQuestionsErrors[surveyId]
-    if (!errs) {
+
+    switch (answer.type) {
+      case SurveyQuestionType.BOOL:
+
+        AppState.removeAnswerError(surveyId, key)
+        if (content == "") {
+          AppState.upsertAnswerError(surveyId, key, "Make sure to pick an answer")
+        }
+        break;
+
+      case SurveyQuestionType.MULTI_PICK:
+        break;
+
+      case SurveyQuestionType.NUMBER:
+        let config: NumberConfig = { min: 0, max: 100 }
+        try {
+          config = JSON.parse(answer.config) as NumberConfig
+        } catch (error) { }
+
+        const Schema = z.object({
+          value: z.number()
+            .min(config.min, `The value must be between ${config.min} and ${config.max}`)
+            .max(config.max, `The value must be between ${config.min} and ${config.max}`),
+        })
+
+        let value = parseInt(content ?? "")
+
+        if (Number.isNaN(value)) {
+          value = config.min - 1
+        }
+
+        let err = Schema.safeParse({ value: value })
+        AppState.handleAnswersError(err, key, surveyId)
+        break;
+
+      case SurveyQuestionType.RATING:
+        let ratingConfig: NumberConfig = { min: 0, max: 100 }
+        try {
+          ratingConfig = JSON.parse(answer.config) as NumberConfig
+        } catch (error) { }
+
+        const ratingSchema = z.object({
+          value: z.number()
+            .min(1, `The value must be between 1 and ${ratingConfig.max}`)
+            .max(ratingConfig.max, `The value must be between 1 and ${ratingConfig.max}`),
+        })
+
+        let ratingValue = parseInt(content ?? "")
+
+        if (Number.isNaN(ratingValue)) {
+          ratingValue = 0
+        }
+
+        let ratingErr = ratingSchema.safeParse({ value: ratingValue })
+        AppState.handleAnswersError(ratingErr, key, surveyId)
+        break;
+
+      case SurveyQuestionType.TEXT:
+
+        const textSchema = z.object({
+          value: z.string()
+            .min(1, "The answer needs to be at least 1 character long")
+        })
+
+        let textErr = textSchema.safeParse({ value: content })
+
+        AppState.handleAnswersError(textErr, key, surveyId)
+        break;
+    }
+  }
+
+
+  handleAnswersError(err: ZodSafeParseResult<object>, key: string, surveyId: string) {
+    AppState.removeAnswerError(surveyId, key)
+
+    if (!Store.surveyAnswersErrors[surveyId]) {
+      SetStore("surveyAnswersErrors", surveyId, [])
+    }
+
+    SetStore("surveyAnswersErrors", surveyId, (prev = []) =>
+      prev.filter(q => q.key !== key)
+    )
+
+    if (!err.error) {
       return
     }
 
-    this.#state.surveyQuestionsErrors[surveyId] = errs.filter(v => v.field != key)
-    this.#save()
-  }
+    let msg = err.error.issues[0].message
 
-  removeAnswerError(surveyId: string, key: string) {
+    SetStore("surveyAnswersErrors", surveyId, (prev = []) => {
 
-    let errs = this.#state.surveyAnswersErrors[surveyId]
-    if (!errs) {
-      return
-    }
+      return [...prev, { key: key, value: msg }]
+    })
 
-    this.#state.surveyAnswersErrors[surveyId] = errs.filter(v => v.field != key)
-    this.#save()
+    AppState.upsertAnswerError(surveyId, key, msg)
   }
 
   handleQuestionError(err: ZodSafeParseResult<object>, key: string, surveyId: string) {
@@ -542,7 +574,7 @@ class State {
     }
 
     SetStore("surveyQuestionsErrors", surveyId, (prev = []) =>
-      prev.filter(q => q.field !== key)
+      prev.filter(q => q.key !== key)
     )
 
     if (!err.error) {
@@ -554,7 +586,7 @@ class State {
 
     SetStore("surveyQuestionsErrors", surveyId, (prev = []) => {
 
-      return [...prev, { field: key, value: msg }]
+      return [...prev, { key: key, value: msg }]
     })
 
     AppState.upsertQuestionError(surveyId, key, msg)

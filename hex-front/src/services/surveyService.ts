@@ -1,5 +1,8 @@
+import { unwrap } from "solid-js/store"
 import DB, { DBStoreNames } from "~/state/database"
 import Client, { ClientResponse } from "~/state/httpClient"
+import AppState from "~/state/state"
+import { Store } from "~/state/store"
 import { CachedQuestions, SurveyAnswer, SurveyAnswers, SurveyQuestion } from "~/types"
 
 
@@ -87,8 +90,36 @@ class SurveyService {
     return response
   }
 
+
   async sendSurvey(surveyId: string, is_preview: boolean): Promise<boolean> {
 
+    let answers = Store.surveyQuestions[surveyId]
+
+    if (!answers) {
+      return false
+    }
+
+
+    for (const ans of answers) {
+      AppState.handleAnswerError(surveyId, ans)
+    }
+
+    let errors = Store.surveyAnswersErrors[surveyId]
+
+    if (errors && errors.length > 0) {
+
+      return false
+    }
+
+    if (is_preview) {
+      // Send survey
+      console.log("send", unwrap(answers))
+    }
+
+
+    return true
+
+    /*
     let data = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId) as SurveyAnswers
     if (!data) {
       return false
@@ -101,6 +132,7 @@ class SurveyService {
       console.log("send", data)
     }
     return true
+    */
 
   }
 
@@ -130,7 +162,7 @@ class SurveyService {
       questions: questions
     }
 
-    if (!local_questions) {
+    if (!local_questions || !local_questions.questions) {
       DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
     }
 
@@ -203,3 +235,4 @@ class SurveyService {
 
 
 export const SurveyS = new SurveyService()
+

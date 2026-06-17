@@ -1,5 +1,6 @@
 import { useNavigate } from "@solidjs/router";
 import { Component, Match, Show, Switch } from "solid-js";
+import z from "zod";
 import { SurveyS } from "~/services/surveyService";
 import AppState from "~/state/state";
 import { Store } from "~/state/store";
@@ -12,12 +13,28 @@ interface PropsType {
 }
 
 const TextAnswerCard: Component<PropsType> = (props) => {
+
+  let input: HTMLInputElement | undefined
   const navigate = useNavigate()
 
   if (!props.data.answer) {
     return (
       <></>
     )
+  }
+
+  const handleError = () => {
+
+    let key = `${props.data.answer.questionId}:value`
+    let value = input?.value ?? ""
+    const Schema = z.object({
+      value: z.string()
+        .min(1, "The answer needs to be at least 1 character long")
+    })
+
+    let err = Schema.safeParse({ value: value })
+
+    AppState.handleAnswersError(err, key, props.data.surveyId)
   }
 
   const handleInput = (e: InputEvent) => {
@@ -33,13 +50,16 @@ const TextAnswerCard: Component<PropsType> = (props) => {
 
   let errors = () => {
     let sErr = Store.surveyAnswersErrors[props.data.surveyId] ?? []
+
+
     return sErr.filter(v => {
       let rexp = new RegExp(`${props.data.answer.questionId}:.*`)
-      return rexp.test(v.field)
+      return rexp.test(v.key)
     }).map(v => v.value)
   }
 
   const next = () => {
+    handleError()
     let n = Math.min(props.data.answer_count - 1, props.data.position() + 1)
     props.data.setPosition(n)
     AppState.upsertSurveyAnswersPosition(props.data.surveyId, n)
@@ -56,7 +76,7 @@ const TextAnswerCard: Component<PropsType> = (props) => {
 
   return (
 
-    <div class="w-[400px] h-[200px] flex flex-col gap-8">
+    <div class="w-[400px] h-[300px] flex flex-col">
 
       <div class="flex justify-start h-[100px]">
         <span class="text-content text-md italic font-bold">
@@ -64,7 +84,7 @@ const TextAnswerCard: Component<PropsType> = (props) => {
         </span>
       </div>
 
-      <div class="h-[100px]">
+      <div class="h-[100px] flex flex-col gap-2">
         <input
           type="text"
           name="title"
@@ -73,13 +93,20 @@ const TextAnswerCard: Component<PropsType> = (props) => {
           required={true}
           onInput={handleInput}
           placeholder={"Answer ?"} />
+
+        <Switch>
+          <Match when={errors().length > 0}>
+            <span class="text-error text-xs h-[2rem] overflow-hidden">
+              {errors()[0]}
+            </span>
+          </Match>
+          <Match when={true}>
+            <span class="text-error text-xs h-[2rem] overflow-hidden">
+            </span>
+          </Match>
+        </Switch>
       </div>
 
-      <Show when={errors().length > 0}>
-        <span class="text-error text-xs h-[2rem] overflow-hidden">
-          {errors()[0]}
-        </span>
-      </Show>
 
       <div class="flex justify-end w-[400px]">
         <Switch>

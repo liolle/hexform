@@ -9,7 +9,7 @@ const Navbar: Component = () => {
 
   const handleLogout = async () => {
     await AuthS.logout()
-    navigate("/", { replace: true })
+    navigate("/auth", { replace: true })
   }
 
   return (

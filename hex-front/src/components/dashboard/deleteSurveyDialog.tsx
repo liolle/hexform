@@ -32,6 +32,7 @@ const DeleteSurveyDialog: Component = () => {
       if (response.result.status == 401) {
 
         AuthS.logout()
+        return
       }
 
       SetStore("dashboardSurveys", (arr) => {

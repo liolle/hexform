@@ -1,3 +1,6 @@
+import { makePersisted } from "@solid-primitives/storage";
+import localforage from "localforage";
+import { createResource } from "solid-js";
 import { createStore } from "solid-js/store";
 import { SurveyAnswer, SurveyData, SurveyQuestion, SurveyQuestionError } from "~/types";
 
@@ -14,7 +17,6 @@ export enum HomeTabType {
 
 export interface StoreType {
   accessToken: string
-  connected: boolean
   user: UserData | undefined
   activeHomeTab: HomeTabType
   activeDashboardSurveyId: string
@@ -27,19 +29,27 @@ export interface StoreType {
   surveyAnswers: Record<string, SurveyAnswer[]>
 }
 
-export const [Store, SetStore] = createStore<StoreType>({
-  accessToken: "",
-  connected: false,
-  user: undefined,
-  activeHomeTab: HomeTabType.DASHBOARD,
-  activeDashboardSurveyId: "",
-  activeSurveyId: "",
-  dashboardSurveys: [],
-  publcSurveys: [],
-  surveyQuestions: {},
-  surveyQuestionsErrors: {},
-  surveyAnswersErrors: {},
-  surveyAnswers: {}
-})
 
+
+export const [Store, SetStore, init] = makePersisted(
+  createStore<StoreType>({
+    accessToken: "",
+    user: undefined,
+    activeHomeTab: HomeTabType.DASHBOARD,
+    activeDashboardSurveyId: "",
+    activeSurveyId: "",
+    dashboardSurveys: [],
+    publcSurveys: [],
+    surveyQuestions: {},
+    surveyQuestionsErrors: {},
+    surveyAnswersErrors: {},
+    surveyAnswers: {}
+  }),
+  {
+    name: "hexform-store",
+    storage: localforage,
+  }
+)
+
+export const [storeReady] = createResource(() => init);
 

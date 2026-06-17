@@ -28,7 +28,8 @@ const LoginForm: Component = () => {
           return
         }
         AppState.accessToken = token
-        navigate('/home', { replace: true });
+        console.log(AppState.accessToken, token)
+        //navigate('/home', { replace: true });
         break;
 
       default:

@@ -1,20 +1,17 @@
-import { onMount, Component } from 'solid-js';
-import AppState from './state/state';
+import { Component, Suspense } from 'solid-js';
+import { storeReady } from './state/store';
 
 interface AppProps {
-  children?: any;  // or more specific: children?: JSX.Element
+  children?: any;
 }
 
 const App: Component = (props: AppProps) => {
 
-  //console.log(AppState.connected)
-
-
   return (
 
-    <>
-      {props.children}
-    </>
+    <Suspense fallback={<div>Loading your data...</div>}>
+      {storeReady() && props.children}
+    </Suspense>
 
   );
 };

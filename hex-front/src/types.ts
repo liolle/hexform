@@ -34,7 +34,7 @@ export interface SurveyAnswers {
 }
 
 export interface SurveyQuestionError {
-  field: string
+  key: string
   value: string
 }
 

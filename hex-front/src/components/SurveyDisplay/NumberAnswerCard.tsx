@@ -1,10 +1,12 @@
 
 import { useNavigate } from "@solidjs/router";
 import { Component, Match, Show, Switch } from "solid-js";
+import z from "zod";
 import { SurveyS } from "~/services/surveyService";
 import AppState from "~/state/state";
 import { Store } from "~/state/store";
 import { AnswerCardProps, NumberConfig } from "~/types";
+import { AllowDigitOnly } from "~/utils";
 
 interface PropsType {
   data: AnswerCardProps
@@ -13,6 +15,7 @@ interface PropsType {
 
 const NumberAnswerCard: Component<PropsType> = (props) => {
   let config: NumberConfig = { min: 0, max: 100 }
+  let input: HTMLInputElement | undefined
   const navigate = useNavigate()
 
   try {
@@ -22,6 +25,23 @@ const NumberAnswerCard: Component<PropsType> = (props) => {
 
 
   const handleError = () => {
+    const Schema = z.object({
+      value: z.number()
+        .min(config.min, `The value must be between ${config.min} and ${config.max}`)
+        .max(config.max, `The value must be between ${config.min} and ${config.max}`),
+    })
+
+    let value = parseInt(input?.value ?? "")
+
+    if (Number.isNaN(value)) {
+      value = config.min - 1
+    }
+
+    let err = Schema.safeParse({ value: value })
+    let key = `${props.data.answer.questionId}:value`
+
+    AppState.handleAnswersError(err, key, props.data.surveyId)
+
   }
 
   const handleInput = (e: InputEvent) => {
@@ -38,14 +58,16 @@ const NumberAnswerCard: Component<PropsType> = (props) => {
     let sErr = Store.surveyAnswersErrors[props.data.surveyId] ?? []
     return sErr.filter(v => {
       let rexp = new RegExp(`${props.data.answer.questionId}:.*`)
-      return rexp.test(v.field)
+      return rexp.test(v.key)
     }).map(v => v.value)
   }
 
   const next = () => {
+    handleError()
     let n = Math.min(props.data.answer_count - 1, props.data.position() + 1)
     props.data.setPosition(n)
     AppState.upsertSurveyAnswersPosition(props.data.surveyId, n)
+
   }
 
   const submit = async () => {
@@ -60,7 +82,7 @@ const NumberAnswerCard: Component<PropsType> = (props) => {
 
   return (
 
-    <div class="w-[400px] h-[200px] flex flex-col gap-8">
+    <div class="w-[400px] h-[300px] flex flex-col">
 
       <div class="flex justify-start h-[100px]">
         <span class="text-content text-md italic font-bold">
@@ -68,24 +90,33 @@ const NumberAnswerCard: Component<PropsType> = (props) => {
         </span>
       </div>
 
-      <div class="h-[100px]">
+      <div class="h-[100px] flex flex-col gap-2 ">
         <input
+          ref={input}
           type="number"
           min={config.min}
           max={config.max}
           name="response"
+          onkeydown={AllowDigitOnly}
           value={props.data.answer.response ?? ""}
           class="input w-full  rounded-[0px] focus:outline-0"
           required={true}
           onInput={handleInput}
         />
+        <Switch>
+          <Match when={errors().length > 0}>
+            <span class="text-error text-xs h-[2rem] overflow-hidden">
+              {errors()[0]}
+            </span>
+          </Match>
+          <Match when={true}>
+            <span class="text-error text-xs h-[2rem] overflow-hidden">
+            </span>
+          </Match>
+        </Switch>
+
       </div>
 
-      <Show when={errors().length > 0}>
-        <span class="text-error text-xs h-[2rem] overflow-hidden">
-          {errors()[0]}
-        </span>
-      </Show>
 
       <div class="flex justify-end w-[400px]">
         <Switch>

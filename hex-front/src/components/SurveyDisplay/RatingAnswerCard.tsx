@@ -1,6 +1,6 @@
 import { useNavigate } from "@solidjs/router";
 import { Component, For, Match, Show, Switch } from "solid-js";
-import { number } from "zod";
+import z, { number } from "zod";
 import { SurveyS } from "~/services/surveyService";
 import AppState from "~/state/state";
 import { Store } from "~/state/store";
@@ -25,10 +25,34 @@ const RatingAnswerCard: Component<PropsType> = (props) => {
 
   }
 
+  const handleError = () => {
+
+    let key = `${props.data.answer.questionId}:value`
+
+    let content = Store.surveyAnswers[props.data.surveyId].find(v => v.questionId == props.data.answer.questionId)?.response ?? ""
+
+    const Schema = z.object({
+      value: z.number()
+        .min(1, `The value must be between 1 and ${config.max}`)
+        .max(config.max, `The value must be between 1 and ${config.max}`),
+    })
+
+    let value = parseInt(content ?? "")
+
+    if (Number.isNaN(value)) {
+      value = 0
+    }
+
+    let err = Schema.safeParse({ value: value })
+
+    AppState.handleAnswersError(err, key, props.data.surveyId)
+  }
+
   const handleInput = (e: InputEvent) => {
 
     const target = e.target as HTMLInputElement;
     const newValue = target.value;
+
 
     let answer = props.data.answer
     answer.response = newValue
@@ -40,11 +64,12 @@ const RatingAnswerCard: Component<PropsType> = (props) => {
     let sErr = Store.surveyAnswersErrors[props.data.surveyId] ?? []
     return sErr.filter(v => {
       let rexp = new RegExp(`${props.data.answer.questionId}:.*`)
-      return rexp.test(v.field)
+      return rexp.test(v.key)
     }).map(v => v.value)
   }
 
   const next = () => {
+    handleError()
     let n = Math.min(props.data.answer_count - 1, props.data.position() + 1)
     props.data.setPosition(n)
     AppState.upsertSurveyAnswersPosition(props.data.surveyId, n)
@@ -61,7 +86,7 @@ const RatingAnswerCard: Component<PropsType> = (props) => {
 
   return (
 
-    <div class="w-[400px] h-[200px] flex flex-col gap-8">
+    <div class="w-[400px] h-[300px] flex flex-col">
 
       <div class="flex justify-start h-[100px]">
         <span class="text-content text-md italic font-bold">
@@ -69,7 +94,7 @@ const RatingAnswerCard: Component<PropsType> = (props) => {
         </span>
       </div>
 
-      <div class="h-[100px]">
+      <div class="h-[100px] flex flex-col gap-2">
         <div class="rating rating-lg flex gap-2">
           <For each={Array.from({ length: 5 })}>
             {(_, index) => (
@@ -97,12 +122,19 @@ const RatingAnswerCard: Component<PropsType> = (props) => {
             )}
           </For>
         </div>
+        <Switch>
+          <Match when={errors().length > 0}>
+            <span class="text-error text-xs h-[2rem] overflow-hidden">
+              {errors()[0]}
+            </span>
+          </Match>
+          <Match when={true}>
+            <span class="text-error text-xs h-[2rem] overflow-hidden">
+            </span>
+          </Match>
+        </Switch>
+
       </div>
-      <Show when={errors().length > 0}>
-        <span class="text-error text-xs h-[2rem] overflow-hidden">
-          {errors()[0]}
-        </span>
-      </Show>
 
       <div class="flex justify-end w-[400px]">
         <Switch>
