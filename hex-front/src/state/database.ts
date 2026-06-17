@@ -50,81 +50,82 @@ class Database {
       }
     })
   }
-
-  async get(storeName: DBStoreNames) {
-    return new Promise(async (resolve, reject) => {
-
-      await this.#init()
-      if (!this.#db) {
-        reject("Db not opened")
-        return
-      }
-
-      const tx = this.#db.transaction(storeName, "readonly")
-      const store = tx.objectStore(storeName)
-      const request = store.getAll()
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getFromKey(storeName: DBStoreNames, key: string) {
-    return new Promise(async (resolve, reject) => {
-      await this.#init()
-      if (!this.#db) {
-        reject("Db not opened")
-        return
-      }
-
-      const tx = this.#db.transaction(storeName, "readonly")
-      const store = tx.objectStore(storeName)
-      const request = store.get(key)
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async deleteFromKey(storeName: DBStoreNames, pattern: string) {
-    return new Promise((resolve, reject) => {
-      if (!this.#db) {
-        reject("Db not opened")
-        return
-      }
-
-      const tx = this.#db.transaction(storeName, "readwrite")
-      const store = tx.objectStore(storeName)
-
-      const range = IDBKeyRange.bound(
-        pattern,                    // lower bound
-        pattern + '\uffff'        // upper bound (all strings starting with pattern)
-      );
-
-      const request = store.delete(range)
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async updateStore(storeName: DBStoreNames, value: object) {
-    return new Promise((resolve, reject) => {
-      if (!this.#db) {
-        reject("Db not opened")
-        return
-      }
-
-      const tx = this.#db.transaction(storeName, "readwrite")
-      tx.objectStore
-      const store = tx.objectStore(storeName)
-
-
-      //console.log(value)
-
-      const request = store.put(value)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
+  /*
+    async get(storeName: DBStoreNames) {
+      return new Promise(async (resolve, reject) => {
+  
+        await this.#init()
+        if (!this.#db) {
+          reject("Db not opened")
+          return
+        }
+  
+        const tx = this.#db.transaction(storeName, "readonly")
+        const store = tx.objectStore(storeName)
+        const request = store.getAll()
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+    }
+  
+    async getFromKey(storeName: DBStoreNames, key: string) {
+      return new Promise(async (resolve, reject) => {
+        await this.#init()
+        if (!this.#db) {
+          reject("Db not opened")
+          return
+        }
+  
+        const tx = this.#db.transaction(storeName, "readonly")
+        const store = tx.objectStore(storeName)
+        const request = store.get(key)
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+    }
+  
+    async deleteFromKey(storeName: DBStoreNames, pattern: string) {
+      return new Promise((resolve, reject) => {
+        if (!this.#db) {
+          reject("Db not opened")
+          return
+        }
+  
+        const tx = this.#db.transaction(storeName, "readwrite")
+        const store = tx.objectStore(storeName)
+  
+        const range = IDBKeyRange.bound(
+          pattern,                    // lower bound
+          pattern + '\uffff'        // upper bound (all strings starting with pattern)
+        );
+  
+        const request = store.delete(range)
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+    }
+  
+    async updateStore(storeName: DBStoreNames, value: object) {
+      return new Promise((resolve, reject) => {
+        if (!this.#db) {
+          reject("Db not opened")
+          return
+        }
+  
+        const tx = this.#db.transaction(storeName, "readwrite")
+        tx.objectStore
+        const store = tx.objectStore(storeName)
+  
+  
+        //console.log(value)
+  
+        const request = store.put(value)
+  
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+    }
+    */
 }
 
 

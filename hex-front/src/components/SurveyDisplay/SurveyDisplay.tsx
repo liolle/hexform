@@ -4,34 +4,27 @@ import ProgressIndicator from "./progressIndicator"
 import { SurveyS } from "~/services/surveyService"
 import TextAnswerCard from "./TextAnswerCard"
 import BoolAnswerCard from "./BoolAnswerCard"
-import AppState from "~/state/state"
 import RatingAnswerCard from "./RatingAnswerCard"
 import NumberAnswerCard from "./NumberAnswerCard"
-import DB, { DBStoreNames } from "~/state/database"
-import { useNavigate } from "@solidjs/router"
+import { Store } from "~/state/store"
+import { unwrap } from "solid-js/store"
 
 interface SurveyDisplayProps {
-  survey: SurveyData | undefined,
+  surveyId: string,
   preview: boolean
 }
 
 const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps) => {
-
-  const navigate = useNavigate()
   const [position, setPosition] = createSignal(0)
   const [answers, setAnswers] = createSignal<SurveyAnswer[]>([])
-
-  if (!props.survey) {
-    return <></>
-  }
+  let questions = unwrap(Store.surveyQuestions[props.surveyId]) ?? []
 
 
-  createEffect(async () => {
-    if (!props.survey) {
-      return
-    }
+  const extract = async () => {
 
-    let qs = props.survey.questions.map(v => {
+
+
+    let qs = questions.map(v => {
 
       let q: SurveyAnswer = {
         questionId: v.id,
@@ -47,67 +40,41 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
 
     qs.sort((a, b) => a.position - b.position)
 
+
+    console.log(questions)
+    console.log(qs)
     setAnswers(qs)
 
     let answers: SurveyAnswers = {
-      survey_id: props.survey.id,
+      survey_id: props.surveyId,
       responses: qs,
       position: 0
     }
 
-    let resolvedAnswers = await SurveyS.resolveAnswers(props.survey.id, answers)
+    let resolvedAnswers = SurveyS.resolveAnswers(props.surveyId, answers)
     setAnswers(resolvedAnswers.responses)
     setPosition(resolvedAnswers.position)
-  })
+
+  }
+
+  extract()
+
 
   let answer = () => {
     let pos = position()
     let ans = answers()
-
     return ans[pos]
-  }
-
-  const next = () => {
-    let n = Math.min(answers().length - 1, position() + 1)
-    setPosition(n)
-    if (!props.survey) {
-      return
-    }
-
-    AppState.upsertSurveyAnswersPosition(props.survey.id, n)
-  }
-
-
-  const submit = async () => {
-    if (!props.survey) {
-      return
-    }
-
-    let data = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, props.survey.id) as SurveyAnswers
-    if (!data) {
-      return
-    }
-
-    await DB.deleteFromKey(DBStoreNames.SURVEY_ANSWERS, props.survey.id)
-
-    if (!props.preview) {
-      // Send survey
-      console.log("send", data)
-
-    }
-
-    navigate("/home", { replace: true })
   }
 
   return (
     <div class="flex flex-col h-full">
       <div class="h-24 flex justify-center items-center">
         <div class="w-[400px] flex justify-center overflow-x-auto">
-          <ProgressIndicator setPosition={setPosition} position={position} questions={props.survey.questions} surveyId={props.survey.id} />
+          <ProgressIndicator setPosition={setPosition} position={position} surveyId={props.surveyId} />
         </div>
       </div>
       <div class="flex flex-col flex-1 justify-center items-center">
-        <QuestionCard surveyId={props.survey.id} answer={answer()} position={position} setPosition={setPosition} answer_count={answers().length} is_preview={props.preview} />
+        <QuestionCard surveyId={props.surveyId} answer={answer()} position={position} setPosition={setPosition} answer_count={answers().length} is_preview={props.preview} />
       </div>
     </div>
   )
@@ -116,6 +83,7 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
 
 
 const QuestionCard: Component<AnswerCardProps> = (props: AnswerCardProps) => {
+
 
   return (
     <div class="">

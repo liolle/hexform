@@ -3,7 +3,6 @@ import { HomeTabType, SetStore, Store, UserData } from "./store"
 import { AuthS } from "~/services/services";
 import { CachedQuestions, NumberConfig, SurveyAnswer, SurveyAnswers, SurveyData, SurveyQuestion, SurveyQuestionType } from "~/types";
 import z, { ZodSafeParseResult } from "zod";
-import DB, { DBStoreNames } from "./database";
 import { unwrap } from "solid-js/store";
 
 function decodeJWT(token: string) {
@@ -86,7 +85,6 @@ class State {
     SetStore("activeSurveyId", id)
   }
 
-
   set activeDashboardSurveyId(id: string) {
     SetStore("activeDashboardSurveyId", id)
   }
@@ -122,7 +120,7 @@ class State {
       } as SurveyData
     })
 
-    SetStore("dashboardSurveys", svs)
+    SetStore("dashboardSurveys", (prev) => svs)
   }
 
   async updatePublicSurveys() {
@@ -157,46 +155,30 @@ class State {
 
   async removeSurveyQuestion(surveyId: string, questionId: string, updateStore = true) {
 
-    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
-    let questions = qInfo.questions ?? []
-    let question = questions.find(v => v.id == questionId)
+    let qInfo = unwrap(Store.surveyQuestions[surveyId])
+    let questions = qInfo ?? []
+    let questionIdx = questions.findIndex(v => v.id == questionId)
 
     let now = new Date(Date.now())
 
-    if (!!question) {
-      for (let i = question.position + 1; i < questions.length; i++) {
+    if (questionIdx < 0) {
+      for (let i = questionIdx; i < questions.length; i++) {
         questions[i].position--
         questions[i].last_modified = now
       }
     }
 
-    let filtered = questions.filter(q => q.id !== questionId)
+    let updated = questions.filter(q => q.id !== questionId)
 
-
-
-    let data: CachedQuestions = {
-      survey_id: surveyId,
-      questions: filtered
-    }
-
-
-    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
-
-
-    if (updateStore) {
-
-      SetStore("surveyQuestions", surveyId, (prev) =>
-        filtered
-      );
-    }
-
+    SetStore("surveyQuestions", surveyId, (prev) => updated)
     this.removeQuestionError(surveyId, questionId)
   }
 
   async addSurveyQuestion(surveyId: string, question: SurveyQuestion, updateStore = true) {
 
-    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
-    let questions = qInfo.questions ?? []
+
+    let qInfo = unwrap(unwrap(Store.surveyQuestions[surveyId]))
+    let questions = qInfo ?? []
 
     let position = 0
 
@@ -206,19 +188,9 @@ class State {
 
     question.position = position
 
-
     questions.push(question)
 
-    let data: CachedQuestions = {
-      survey_id: surveyId,
-      questions: questions
-    }
-
-    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
-
-    if (updateStore) {
-      SetStore("surveyQuestions", surveyId, (prev = []) => questions);
-    }
+    SetStore("surveyQuestions", surveyId, (prev) => [...questions]);
   };
 
   async #swapQuestionIndex(surveyId: string, questions: SurveyQuestion[], idx1: number, idx2: number) {
@@ -236,7 +208,6 @@ class State {
       questions: questions
     }
 
-    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
     SetStore("surveyQuestions", surveyId, (prev) =>
       questions
     );
@@ -244,8 +215,9 @@ class State {
   }
 
   async pushUpQuestion(surveyId: string, q_id: string) {
-    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
-    let questions = qInfo.questions ?? []
+
+    let qInfo = Store.surveyQuestions[surveyId]
+    let questions = qInfo ?? []
 
     let idx = -1
 
@@ -267,8 +239,9 @@ class State {
   }
 
   async pushDownQuestion(surveyId: string, q_id: string) {
-    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
-    let questions = qInfo.questions ?? []
+
+    let qInfo = Store.surveyQuestions[surveyId]
+    let questions = qInfo ?? []
 
     let idx = -1
 
@@ -291,8 +264,8 @@ class State {
 
   async swapQuestionPosition(surveyId: string, q1_id: string, q2_id: string) {
 
-    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
-    let questions = qInfo.questions ?? []
+    let qInfo = Store.surveyQuestions[surveyId]
+    let questions = qInfo ?? []
 
     let q1_idx = -1
     let q2_idx = -1
@@ -317,59 +290,38 @@ class State {
 
   async upsertSurveyQuestion(surveyId: string, questionId: string, question: SurveyQuestion, updateStore = true) {
 
-    question.last_modified = new Date(Date.now())
+    question.last_modified = new Date(Date.now());
 
-    let qInfo = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
-    let questions = qInfo.questions ?? []
-    let updated = questions.map(q => q.id === questionId ? { ...question } : q)
+    const existingQuestions = Store.surveyQuestions[surveyId] ?? [];
+    const questionIndex = existingQuestions.findIndex(q => q.id === questionId);
 
-    if (updated.length == 0) {
-      updated.push(question)
-    }
-
-
-    let data: CachedQuestions = {
-      survey_id: surveyId,
-      questions: updated
-    }
-
-    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
-
-    if (updateStore) {
-      SetStore("surveyQuestions", surveyId, (questions) =>
-        updated
-      );
+    if (questionIndex === -1) {
+      SetStore("surveyQuestions", surveyId, (questions) => [
+        ...(questions || []),
+        question
+      ]);
+    } else {
+      SetStore("surveyQuestions", surveyId, questionIndex, question);
     }
   }
 
   /* Survey submission*/
 
   async upsertSurveyAnswersPosition(surveyId: string, position: number) {
-    let info = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId) as SurveyAnswers
+    let info = Store.surveyAnswers[surveyId]
 
     if (!info) {
       return
     }
 
-    info.position = position
-
-    await DB.updateStore(DBStoreNames.SURVEY_ANSWERS, info)
-
   }
 
   async upsertSurveyAnswers(surveyId: string, questionId: string, answer: SurveyAnswer, updateStore = true) {
-    let info = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId) as SurveyAnswers
+    let answers = Store.surveyAnswers[surveyId] ?? []
 
-    if (!info) {
-      info = {
-        survey_id: surveyId,
-        position: 0,
-        responses: [answer]
-      }
-    }
     let included = false
 
-    let updated = info.responses.map(ans => {
+    let updated = answers.map(ans => {
       if (ans.questionId === questionId) {
         included = true
 
@@ -381,19 +333,10 @@ class State {
       updated.push(answer)
     }
 
-    let data: SurveyAnswers = {
-      survey_id: surveyId,
-      position: info.position,
-      responses: updated
-    }
+    SetStore("surveyAnswers", surveyId, (questions) =>
+      updated
+    );
 
-    await DB.updateStore(DBStoreNames.SURVEY_ANSWERS, data)
-
-    if (updateStore) {
-      SetStore("surveyAnswers", surveyId, (questions) =>
-        updated
-      );
-    }
   }
 
   upsertQuestionError(surveyId: string, key: string, error: string) {
@@ -467,6 +410,11 @@ class State {
 
   handleAnswerError(surveyId: string, answer: SurveyQuestion) {
     let key = `${answer.id}:value`
+
+    if (!Store.surveyAnswers[surveyId]) {
+      SetStore("surveyAnswers", surveyId, [])
+    }
+
     let content = Store.surveyAnswers[surveyId].find(v => v.questionId == answer.id)?.response ?? ""
 
 
@@ -591,6 +539,8 @@ class State {
 
     AppState.upsertQuestionError(surveyId, key, msg)
   }
+
+
 }
 
 let AppState = new State()

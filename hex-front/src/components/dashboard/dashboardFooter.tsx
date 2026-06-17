@@ -2,7 +2,7 @@ import { Component, Match, Show, Switch } from "solid-js"
 import { SurveyS } from "~/services/surveyService"
 import DB, { DBStoreNames } from "~/state/database"
 import AppState from "~/state/state"
-import { Store } from "~/state/store"
+import { SetStore, Store } from "~/state/store"
 import { CachedQuestions, SurveyQuestion, SurveyState } from "~/types"
 
 
@@ -40,13 +40,9 @@ const DashboardFooter: Component = () => {
       return
     }
 
-    let local_questions = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
-    let questions = local_questions.questions
+    let questions = Store.surveyQuestions[surveyId] ?? []
 
-    if (!questions) {
-      sending = false
-      return
-    }
+
 
     let qs = questions.map(v => {
       return {
@@ -71,12 +67,9 @@ const DashboardFooter: Component = () => {
       return
     }
 
-    let data: CachedQuestions = {
-      survey_id: surveyId,
-      questions: res.result.content["questions"]
-    }
 
-    await DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+    SetStore("surveyQuestions", surveyId, () => res.result.content["questions"])
+    SurveyS.invalidateSurvey(surveyId)
 
     sending = false
   }

@@ -120,7 +120,6 @@ class SurveyService():
                     "position": q.position
                 }
             )
-            #data.append(Questions(id=q.id,title=q.title,type=QType(q.type),survey_id=survey_id,config=q.config,position=q.position))
 
 
         incoming_ids = [q.id for q in questions]
@@ -154,20 +153,17 @@ class SurveyService():
                 if survey.owner_id != user_id :
                     return Result(False,{"reason":"Could not delete the survey", "status_code" : status.HTTP_403_FORBIDDEN })
 
-                if incoming_ids:
-                    con.execute(delStm)
+                con.execute(delStm)
 
-                con.execute(insertStm)
+                if len(data)>0 :
+                    con.execute(insertStm)
+
                 con.commit()
 
                 return Result(True,{"questions": questions}) 
             except Exception as e:
                 print(e)
                 return Result(False,{"reason":"Could not update the survey", "status_code" : status.HTTP_400_BAD_REQUEST })
-
-
-
-
 
     def update_survey(self,form:CreateSurveyForm,survey_id:str,access_token:str)->Result:
         token_res = verify_token(access_token)

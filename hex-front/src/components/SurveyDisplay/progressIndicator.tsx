@@ -5,7 +5,6 @@ import { SurveyQuestion } from "~/types"
 
 
 interface SurveyPreviewIndicatorProps {
-  questions: SurveyQuestion[]
   setPosition: Setter<number>
   position: Accessor<number>
   surveyId: string
@@ -13,8 +12,10 @@ interface SurveyPreviewIndicatorProps {
 
 const ProgressIndicator = (props: SurveyPreviewIndicatorProps) => {
 
+  const questions = Store.surveyQuestions[props.surveyId] ?? []
+
   const handleStepClick = (index: number) => {
-    if (index < 0 || index >= props.questions.length) {
+    if (index < 0 || index >= questions.length) {
       return
     }
     props.setPosition(index)
@@ -27,7 +28,7 @@ const ProgressIndicator = (props: SurveyPreviewIndicatorProps) => {
   let errors = (index: number) => {
     let sErr = Store.surveyAnswersErrors[props.surveyId] ?? []
     return sErr.filter(v => {
-      let rexp = new RegExp(`${props.questions[index].id}:.*`)
+      let rexp = new RegExp(`${questions[index].id}:.*`)
       return rexp.test(v.key)
     }).map(v => v.value)
   }
@@ -40,20 +41,18 @@ const ProgressIndicator = (props: SurveyPreviewIndicatorProps) => {
       additionalClass.push("border-[2px]")
     }
 
-
     if (errors(index).length > 0) {
 
       additionalClass.push("border-error")
 
     }
 
-
     return `${baseStyle} ${additionalClass.join(" ")}`
   }
 
   return (
     <div class=" flex gap-12">
-      <For each={props.questions}>
+      <For each={questions}>
         {(item, index) =>
           <button class={`${style(index())}`} onclick={() => handleStepClick(index())} >
             <span class="text-content">

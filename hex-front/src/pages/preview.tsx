@@ -34,6 +34,7 @@ const PreviewPage: Component = () => {
       survey.questions = resolvedQuestions
     }
 
+
     setSurvey(survey)
   })
 
@@ -47,7 +48,7 @@ const PreviewPage: Component = () => {
           </span>
         </Match>
         <Match when={!!survey()}>
-          <SurveyDisplay survey={survey()} preview />
+          <SurveyDisplay surveyId={survey()?.id ?? ""} preview />
         </Match>
       </Switch>
     </div>

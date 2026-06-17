@@ -1,8 +1,7 @@
 import { unwrap } from "solid-js/store"
-import DB, { DBStoreNames } from "~/state/database"
-import Client, { ClientResponse } from "~/state/httpClient"
+import Client, { CachedClientResponse, CachedRequest, ClientResponse } from "~/state/httpClient"
 import AppState from "~/state/state"
-import { Store } from "~/state/store"
+import { SetStore, Store } from "~/state/store"
 import { CachedQuestions, SurveyAnswer, SurveyAnswers, SurveyQuestion } from "~/types"
 
 
@@ -95,10 +94,11 @@ class SurveyService {
 
     let answers = Store.surveyQuestions[surveyId]
 
+    console.log(answers)
+
     if (!answers) {
       return false
     }
-
 
     for (const ans of answers) {
       AppState.handleAnswerError(surveyId, ans)
@@ -116,39 +116,31 @@ class SurveyService {
       console.log("send", unwrap(answers))
     }
 
-
+    SetStore("surveyAnswers", surveyId, (prev) => [])
     return true
-
-    /*
-    let data = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId) as SurveyAnswers
-    if (!data) {
-      return false
-    }
-
-    await DB.deleteFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId)
-
-    if (is_preview) {
-      // Send survey
-      console.log("send", data)
-    }
-    return true
-    */
-
   }
 
   /* Invalidate */
 
   async invalidateSurvey(surveyId: string) {
 
-    let keys: [DBStoreNames, string][] = [
-      [DBStoreNames.API_CACHE, "surveys/created"],
-      [DBStoreNames.API_CACHE, "surveys/public"],
-      [DBStoreNames.API_CACHE, `surveys/${surveyId}`],
-    ]
+    let createdReg = /surveys\/created/
+    let publicReg = /surveys\/public/
+    let surveyReg = new RegExp(`surveys/${surveyId}`)
 
-    for (const elem of keys) {
-      DB.deleteFromKey(elem[0], elem[1])
-    }
+    SetStore("apiCache", (prev) => {
+      let res: Record<string, CachedRequest> = {}
+
+      for (const key in prev) {
+        if (createdReg.test(key) || publicReg.test(key) || surveyReg.test(key)) {
+          continue
+        }
+
+        res[key] = prev[key]
+      }
+
+      return res
+    })
   }
 
 
@@ -156,25 +148,27 @@ class SurveyService {
 
   async resolveQuestions(surveyId: string, questions: SurveyQuestion[]): Promise<SurveyQuestion[]> {
 
-    let local_questions = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
+    let local_questions = unwrap(Store.surveyQuestions[surveyId])
     let data: CachedQuestions = {
       survey_id: surveyId,
       questions: questions
     }
 
-    if (!local_questions || !local_questions.questions) {
-      DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+
+    if (!local_questions) {
+      SetStore("surveyQuestions", surveyId, (prev) => [...questions])
+      local_questions = questions
     }
 
 
-    let intersection: SurveyQuestion[] = []
+    let comb: SurveyQuestion[] = []
     let qMap = new Map<string, SurveyQuestion>()
 
     for (const q of questions) {
       qMap.set(q.id, q)
     }
 
-    for (const q of local_questions.questions) {
+    for (const q of local_questions) {
       let qx = qMap.get(q.id)
       if (!qx) {
         qMap.set(q.id, q)
@@ -188,18 +182,18 @@ class SurveyService {
       }
     }
 
-    intersection = qMap.values().toArray()
+    comb = qMap.values().toArray()
 
-    data.questions = intersection
-    DB.updateStore(DBStoreNames.LOCAL_QUESTIONS, data)
+    data.questions = comb
+    SetStore("surveyQuestions", surveyId, (prev) => [...comb])
 
-    return intersection
+    return comb
   }
 
 
-  async resolveAnswers(surveyId: string, answers: SurveyAnswers): Promise<SurveyAnswers> {
+  resolveAnswers(surveyId: string, answers: SurveyAnswers): SurveyAnswers {
 
-    let savedAnswers = await DB.getFromKey(DBStoreNames.SURVEY_ANSWERS, surveyId) as SurveyAnswers
+    let savedAnswers = Store.surveyAnswers[surveyId]
 
     if (!savedAnswers) {
       return answers
@@ -207,13 +201,13 @@ class SurveyService {
 
     let res: SurveyAnswers = {
       survey_id: answers.survey_id,
-      position: savedAnswers.position,
+      position: 0,
       responses: []
     }
 
     let map = new Map<string, SurveyAnswer>
 
-    for (const ans of savedAnswers.responses) {
+    for (const ans of savedAnswers) {
       map.set(ans.questionId, ans)
     }
 

@@ -32,6 +32,8 @@ const TextAnswerCard: Component<PropsType> = (props) => {
         .min(1, "The answer needs to be at least 1 character long")
     })
 
+    console.log(props, value)
+
     let err = Schema.safeParse({ value: value })
 
     AppState.handleAnswersError(err, key, props.data.surveyId)
@@ -86,6 +88,7 @@ const TextAnswerCard: Component<PropsType> = (props) => {
 
       <div class="h-[100px] flex flex-col gap-2">
         <input
+          ref={input}
           type="text"
           name="title"
           value={props.data.answer.response ?? ""}

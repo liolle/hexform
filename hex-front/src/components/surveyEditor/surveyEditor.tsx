@@ -25,25 +25,20 @@ const SurveyEditor = (props: SurveyEditorProps) => {
     )
   }
 
-
   createEffect(async () => {
     //await SurveyS.invalidateSurvay(survey.id)
     let res = await SurveyS.getSurvey(survey.id, true)
     let questions: SurveyQuestion[] = res.result.content["survey"]["questions"] ?? []
     let resolvedQuestions = await SurveyS.resolveQuestions(survey.id, questions)
 
+
     SetStore("surveyQuestions", survey.id, (prev) => [...resolvedQuestions])
   })
-
-  let questions = () => {
-    let sq = Store.surveyQuestions
-    return sq[survey.id]
-  }
 
   return (
     <div class="flex flex-col gap-4 relative overflow-y-auto" >
       <div class="max-h-[700px]">
-        <For each={questions()}>
+        <For each={Store.surveyQuestions[survey.id]}>
           {(item, index) =>
             <QuestionCard surveyId={survey.id} questionId={item.id} question={item} />
           }

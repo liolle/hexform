@@ -1,5 +1,7 @@
+import { unwrap } from "solid-js/store"
 import DB, { DBStoreNames } from "./database"
 import AppState from "./state"
+import { SetStore, Store } from "./store"
 
 enum RequestMethod {
   "POST" = "POST",
@@ -78,14 +80,15 @@ export class ClientRequest {
   }
 
   async #checkCache() {
-    let now = new Date(Date.now())
     let key = `${this.method}:${this.url}`
-    let res = await DB.getFromKey(DBStoreNames.API_CACHE, key) as CachedRequest
+    let res = unwrap(Store.apiCache[key])
     if (!res) {
       return this
     }
+    let now = new Date(Date.now())
+    let cachedDate = new Date(res.last_modified)
 
-    let elapse = now.getTime() - res.last_modified.getTime()
+    let elapse = now.getTime() - cachedDate.getTime()
     if (elapse < 60000) {
       res.response.cached = true
       this.#cachedResponse = res.response
@@ -99,7 +102,6 @@ export class ClientRequest {
   async send(): Promise<ClientResponse> {
 
     if (this.#needCache) {
-
       await this.#checkCache()
     }
 
@@ -149,7 +151,7 @@ export class ClientRequest {
         last_modified: now,
       }
 
-      DB.updateStore(DBStoreNames.API_CACHE, cachedR)
+      SetStore("apiCache", key, (prev) => cachedR)
     }
 
     return result

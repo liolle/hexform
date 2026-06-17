@@ -4,7 +4,7 @@ import { IoArrowBack } from "solid-icons/io"
 import { Component, Match, Show, Switch } from "solid-js"
 import { SurveyS } from "~/services/surveyService"
 import AppState from "~/state/state"
-import { Store } from "~/state/store"
+import { SetStore, Store } from "~/state/store"
 import { SurveyData, SurveyState } from "~/types"
 
 
@@ -63,8 +63,8 @@ const DashboardPanel: Component = () => {
       return
     }
 
-
     SurveyS.invalidateSurvey(surveyId)
+    SetStore("surveyAnswersErrors", surveyId, () => [])
     navigate(`/preview/${surveyId}`)
 
   }

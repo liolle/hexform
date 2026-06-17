@@ -1,6 +1,5 @@
-import DB, { DBStoreNames } from "~/state/database"
 import Client, { ClientResponse } from "~/state/httpClient"
-import AppState from "~/state/state"
+import { SetStore, Store, StoreType } from "~/state/store"
 
 
 class AuthService {
@@ -17,11 +16,17 @@ class AuthService {
   }
 
   async logout() {
-    AppState.accessToken = undefined
-    await DB.deleteFromKey(DBStoreNames.API_CACHE, "")
-    return
-  }
+    SetStore({
+      ...Store,
+      dashboardSurveys: [],
+      publcSurveys: [],
+      user: undefined,
+      accessToken: "",
+      apiCache: {}
+    } as StoreType);
 
+    return;
+  }
 
   async register(data: object): Promise<ClientResponse> {
 
