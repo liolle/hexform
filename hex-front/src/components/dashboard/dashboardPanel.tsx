@@ -65,6 +65,7 @@ const DashboardPanel: Component = () => {
 
     SurveyS.invalidateSurvey(surveyId)
     SetStore("surveyAnswersErrors", surveyId, () => [])
+    SetStore("surveyAnswers", surveyId, () => [])
     navigate(`/preview/${surveyId}`)
 
   }

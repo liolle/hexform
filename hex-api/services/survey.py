@@ -1,10 +1,11 @@
 from datetime import datetime
 from operator import and_
-from sqlalchemy import delete, insert, select, exists, and_
+from sqlalchemy import delete, func, insert, select, exists, and_
 from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy.dialects.postgresql import insert
-from dto import SurveyData, CreateSurveyForm, SurveyQuestionForm
-from database import Surveys, SurveyState,Submissions, Questions, QType, dbConnection
+from sqlalchemy.sql.functions import count
+from dto import SurveyData, CreateSurveyForm, SurveyQuestionForm, SubmitSurveyForm
+from database import Surveys, SurveyState,Submissions, Questions, Answers, QType, dbConnection
 from utils import generate_id, Result
 from services import verify_token
 from fastapi import status
@@ -212,7 +213,18 @@ class SurveyService():
 
         user_id = token_res.keys["claims"]["id"]
 
-        stm = select(Surveys).where(Surveys.owner_id == user_id)
+
+        stm = select(
+                    Surveys,
+                    exists().where(
+                        and_(
+                            Submissions.survey_id == Surveys.id,
+                            Submissions.user_id == user_id  
+                        )
+                    ).label("submited")
+                ).where(Surveys.owner_id == user_id)
+
+
 
         if (include_q):
             stm = stm.options(
@@ -222,14 +234,36 @@ class SurveyService():
 
         with dbConnection() as con:
             try:
-                surveys = con.execute(stm).scalars().all()
-
-                return Result(True,{"surveys": surveys}) 
+                results = con.execute(stm).all()
+                surveys_with_status = []
+                for survey, has_submission in results:
+                    survey_dict = {
+                        "survey": survey,
+                        "submited": has_submission
+                    }
+                    surveys_with_status.append(survey_dict)
+                return Result(True, {"surveys": surveys_with_status}) 
             except Exception:
                 return Result(False,{"reason":"Could not get the surveys"})
 
-    def get_surveys_public(self,include_q = False)->Result:
-        stm = select(Surveys).where((Surveys.is_public == True) & (Surveys.state == SurveyState.PUBLISHED))
+    def get_surveys_public(self,access_token:str,include_q = False)->Result:
+        token_res = verify_token(access_token)
+
+        user_id = ""
+
+        if token_res.success and "id" in token_res.keys["claims"] :
+            user_id = token_res.keys["claims"]["id"]
+
+        
+        stm = select(
+            Surveys,
+            exists().where(
+                and_(
+                    Submissions.survey_id == Surveys.id,
+                     Submissions.user_id == user_id  
+                )
+            ).label("submited")
+        ).where((Surveys.is_public == True) & (Surveys.state == SurveyState.PUBLISHED))
 
 
         if (include_q):
@@ -240,8 +274,15 @@ class SurveyService():
 
         with dbConnection() as con:
             try:
-                surveys = con.execute(stm).scalars().all()
-                return Result(True,{"surveys": surveys}) 
+                results = con.execute(stm).all()
+                surveys_with_status = []
+                for survey, has_submission in results:
+                    survey_dict = {
+                        "survey": survey,
+                        "submited": has_submission
+                    }
+                    surveys_with_status.append(survey_dict)
+                return Result(True, {"surveys": surveys_with_status})
             except Exception:
                 return Result(False,{"reason":"Could not get the surveys"})
 
@@ -320,6 +361,115 @@ class SurveyService():
             except Exception:
                 return Result(False,{"reason":"Could not get the survey"})
 
+
+    def submit_survey(self,data:SubmitSurveyForm,access_token:str,survey_id:str)->Result:
+
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token" })
+
+        user_id = token_res.keys["claims"]["id"]
+
+        submission_exist_stm = select(Submissions).where(and_(
+            Submissions.survey_id == survey_id,
+            Submissions.user_id == user_id
+        ))
+
+        s_ids = [x.id for x in data.responses]
+
+        q_count_included = select(
+            func.count(Questions.id)
+        ).where(and_(
+            Questions.survey_id == survey_id,
+            Questions.id.in_(s_ids)
+        )).scalar_subquery()
+
+        q_count = select(
+            func.count(Questions.id)
+        ).where(and_(
+            Questions.survey_id == survey_id,
+        )).scalar_subquery()
+
+        q_count_stm = select(
+            q_count_included.label("total_answers"),
+            q_count.label("total_questions")
+        )
+
+        responses:list = []
+
+
+        submission_id = generate_id(48,"SMT")
+        submission = Submissions(id=submission_id,survey_id=survey_id,user_id=user_id)
+
+        for q in data.responses:
+            answer_id = generate_id(48,"ANS")
+            r = {
+                "id": answer_id,
+                "submission_id": submission_id,
+                "question_id": q.id,
+                "answer_text" : "",
+                "answer_bool" : False,
+                "answer_number" : 0,
+                "answer_json" : "",
+            }
+
+            match q.type:
+                case "TEXT":
+                    r["answer_text"] = q.response
+                    pass
+
+                case "NUMBER":
+                    r["answer_number"] = float(q.response) 
+                    pass
+
+                case "RATING":
+                    r["answer_number"] = float(q.response) 
+                    pass
+
+                case "BOOL":
+                    r["answer_bool"] = bool(q.response) 
+                    pass
+
+            responses.append(r)
+
+        insertStm = insert(Answers).values(responses)
+        insertStm = insertStm.on_conflict_do_update(
+            index_elements=['id'],
+            set_={
+                'answer_text': insertStm.excluded.answer_text,
+                'answer_number': insertStm.excluded.answer_number,
+                'answer_bool': insertStm.excluded.answer_bool,
+                'answer_json': insertStm.excluded.answer_json,
+            }
+        )
+
+        with dbConnection() as con:
+            try:
+                sb = con.execute(submission_exist_stm).scalar()
+
+                if sb:
+                    return Result(False,{"reason": "Submission already exist for this survey", "status_code" : status.HTTP_409_CONFLICT })
+
+                q_count = con.execute(q_count_stm).all()
+
+                (total_answers,total_questions) = q_count[0] 
+
+                if (total_answers != total_questions):
+                    return Result(False,{"reason": "Some answer have no response", "status_code" : status.HTTP_400_BAD_REQUEST })
+
+
+                con.add(submission)
+                con.execute(insertStm)
+                con.commit()
+                return Result(True, {"submission":submission,"answers": responses})
+            except Exception :
+                return Result(False,{"reason": "Could not submit the survey" })
+
+
     def get_survey_by_id(self,id:str, access_token:str, key:str | None = None, include_questions = False)->Result:
 
         token_res = verify_token(access_token)
@@ -333,7 +483,17 @@ class SurveyService():
         user_id = token_res.keys["claims"]["id"]
         res = {}
 
-        stm = select(Surveys).where(Surveys.id == id)
+        stm = select(
+            Surveys,
+            exists().where(
+                and_(
+                    Submissions.survey_id == Surveys.id,
+                    Submissions.user_id == user_id  
+                )
+            ).label("submited")
+        ).where(Surveys.id == id)
+
+
 
         if (include_questions):
             stm = stm.options(
@@ -342,33 +502,53 @@ class SurveyService():
 
         with dbConnection() as con:
             try:
-                survey = con.execute(stm).scalar_one_or_none()
+                result = con.execute(stm).all()
+
+                if len(result) ==0:
+                    return Result(False,{"reason": "Not found", "status_code" : status.HTTP_404_NOT_FOUND })
+
+                (survey,submited) = result[0]
+
 
                 if survey == None:
                     return Result(False,{"reason": "Not found", "status_code" : status.HTTP_404_NOT_FOUND })
 
                 # i have created the survey 
                 if survey.owner_id == user_id:
-                    res["survey"] = survey
+                    res["data"] =  {
+                        "survey": survey,
+                        "submited": submited 
+                    }
                     return Result(True,res)
 
                 # i have a valid key for the survey
                 for k in survey.keys:
                     if k.value == key:
-                        res["survey"] = survey
+                        res["data"] =  {
+                            "survey": survey,
+                            "submited": submited 
+                        }
                         return Result(True,res)
 
                 # i alreary have completed the survey
-                for sub in survey.submissions:
-                    if sub.user_id == user_id :
-                        res["survey"] = survey
-                        return Result(True,res)
+                if submited :
+                    res["data"] =  {
+                        "survey": survey,
+                        "submited": submited 
+                    }
+                    return Result(True,res)
+
 
                 # publick survey
                 if survey.is_public and survey.state == SurveyState.PUBLISHED:
-                    res["survey"] = survey
+                    res["data"] =  {
+                        "survey": survey,
+                        "submited": submited 
+                    }
                     return Result(True,res)
+
                 return Result(False,{"reason":"Could not get the survey", "status_code" : status.HTTP_403_FORBIDDEN })
+
             except Exception:
                 return Result(False,{"reason":"Could not get the survey"})
 

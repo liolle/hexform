@@ -20,7 +20,7 @@ const SurveyCompletionPage: Component = () => {
       return
     }
 
-    let survey: SurveyData = response.result.content["survey"]
+    let survey: SurveyData = response.result.content["data"]["survey"]
 
 
     if (!survey) {
@@ -47,7 +47,7 @@ const SurveyCompletionPage: Component = () => {
           </span>
         </Match>
         <Match when={!!survey()}>
-          <SurveyDisplay survey={survey()} preview={false} />
+          <SurveyDisplay surveyId={survey()?.id ?? ""} preview={false} />
         </Match>
       </Switch>
     </div>

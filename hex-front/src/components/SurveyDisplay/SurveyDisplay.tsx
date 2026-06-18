@@ -23,7 +23,6 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
   const extract = async () => {
 
 
-
     let qs = questions.map(v => {
 
       let q: SurveyAnswer = {
@@ -41,9 +40,8 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
     qs.sort((a, b) => a.position - b.position)
 
 
-    console.log(questions)
-    console.log(qs)
     setAnswers(qs)
+
 
     let answers: SurveyAnswers = {
       survey_id: props.surveyId,
@@ -52,6 +50,9 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
     }
 
     let resolvedAnswers = SurveyS.resolveAnswers(props.surveyId, answers)
+
+
+
     setAnswers(resolvedAnswers.responses)
     setPosition(resolvedAnswers.position)
 

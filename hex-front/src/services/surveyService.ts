@@ -59,6 +59,7 @@ class SurveyService {
   }
 
   async updateSurveyQuestion(data: object, surveyId: string): Promise<ClientResponse> {
+    console.log(data)
     let response = await Client.patch(`surveys/${surveyId}/questions`)
       .withHeaders([
         ["Content-Type", "application/json"]
@@ -92,19 +93,18 @@ class SurveyService {
 
   async sendSurvey(surveyId: string, is_preview: boolean): Promise<boolean> {
 
-    let answers = Store.surveyQuestions[surveyId]
+    let questions = unwrap(Store.surveyQuestions[surveyId])
 
-    console.log(answers)
 
-    if (!answers) {
+    if (!questions) {
       return false
     }
 
-    for (const ans of answers) {
+    for (const ans of questions) {
       AppState.handleAnswerError(surveyId, ans)
     }
 
-    let errors = Store.surveyAnswersErrors[surveyId]
+    let errors = unwrap(Store.surveyAnswersErrors[surveyId])
 
     if (errors && errors.length > 0) {
 
@@ -113,8 +113,29 @@ class SurveyService {
 
     if (is_preview) {
       // Send survey
-      console.log("send", unwrap(answers))
+      console.log("send", unwrap(questions))
     }
+
+    let answers = unwrap(Store.surveyAnswers[surveyId])
+
+    let data = answers.map(v => {
+      return {
+        id: v.questionId,
+        response: v.response,
+        type: v.type
+      }
+    })
+
+    let response = await Client.post(`survey/${surveyId}/submit`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+      .withBody({
+        responses: data
+      })
+      .send()
+
+    console.log(response.result.content)
 
     SetStore("surveyAnswers", surveyId, (prev) => [])
     return true

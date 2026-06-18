@@ -20,7 +20,7 @@ const PreviewPage: Component = () => {
       return
     }
 
-    let survey: SurveyData = response.result.content["survey"]
+    let survey: SurveyData = response.result.content["data"]["survey"]
 
 
     if (!survey) {

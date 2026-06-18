@@ -8,6 +8,7 @@ import { NumberQuestionCard } from "./NumberQuestionCard"
 import { BoolQuestionCard } from "./BooleanQuestionCard"
 import { AiFillCaretDown, AiFillCaretUp } from "solid-icons/ai"
 import AppState from "~/state/state"
+import { unwrap } from "solid-js/store"
 
 interface SurveyEditorProps {
   survey: SurveyData | undefined
@@ -28,8 +29,10 @@ const SurveyEditor = (props: SurveyEditorProps) => {
   createEffect(async () => {
     //await SurveyS.invalidateSurvay(survey.id)
     let res = await SurveyS.getSurvey(survey.id, true)
-    let questions: SurveyQuestion[] = res.result.content["survey"]["questions"] ?? []
+    let questions: SurveyQuestion[] = res.result.content["data"]["survey"]["questions"] ?? []
     let resolvedQuestions = await SurveyS.resolveQuestions(survey.id, questions)
+
+    resolvedQuestions.sort((a, b) => a.position - b.position)
 
 
     SetStore("surveyQuestions", survey.id, (prev) => [...resolvedQuestions])

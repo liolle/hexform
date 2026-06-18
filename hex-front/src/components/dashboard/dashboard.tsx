@@ -9,6 +9,7 @@ import CreateQuestionDialog from "./CreateQuestionDialog"
 import DashboardFooter from "./dashboardFooter"
 import DashboardPanel from "./dashboardPanel"
 import { SurveyData, SurveyState } from "~/types"
+import { unwrap } from "solid-js/store"
 
 
 const Dashboard: Component = () => {
@@ -42,6 +43,7 @@ const Dashboard: Component = () => {
 const SurveyDetails = () => {
 
   let activeSurvey = () => Store.dashboardSurveys?.find(v => v.id == Store.activeDashboardSurveyId)
+
 
   return (
     <div class="flex-1 flex bg-transparent flex flex-col gap-2 ">

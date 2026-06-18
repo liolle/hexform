@@ -84,6 +84,12 @@ export interface SurveyData {
   is_public: boolean
   created_at: Date
   questions: SurveyQuestion[]
+  submited: boolean
+}
+
+export interface SurveyDataExtened {
+  submited: boolean
+  survey: SurveyData
 }
 
 // DB 

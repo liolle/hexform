@@ -96,7 +96,7 @@ const RatingAnswerCard: Component<PropsType> = (props) => {
 
       <div class="h-[100px] flex flex-col gap-2">
         <div class="rating rating-lg flex gap-2">
-          <For each={Array.from({ length: 5 })}>
+          <For each={Array.from({ length: config.max })}>
             {(_, index) => (
               <input
                 type="radio"

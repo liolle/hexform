@@ -30,6 +30,9 @@ const TextQuestionCard = (props: QuestionCardProps) => {
 
   const handleInput = (e: InputEvent) => {
 
+    q.config = ""
+
+
     const target = e.target as HTMLInputElement;
     const newValue = target.value;
     switch (target.name) {

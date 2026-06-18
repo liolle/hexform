@@ -1,6 +1,6 @@
 import { Component, createEffect, For, Match, Switch } from "solid-js"
 import AppState from "~/state/state"
-import { Store } from "~/state/store"
+import { SetStore, Store } from "~/state/store"
 import { SurveyData } from "~/types"
 import SurveysPanel from "./SurveysPanel"
 import { SurveyS } from "~/services/surveyService"
@@ -103,6 +103,8 @@ const SurveyCard = (props: SurveysCardProps) => {
     }
 
     SurveyS.invalidateSurvey(surveyId)
+    SetStore("surveyAnswersErrors", surveyId, () => [])
+    SetStore("surveyAnswers", surveyId, () => [])
     navigate(`/survey/${surveyId}`)
   }
 

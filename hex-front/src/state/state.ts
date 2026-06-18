@@ -1,7 +1,7 @@
 import { SurveyS } from "~/services/surveyService";
 import { HomeTabType, SetStore, Store, UserData } from "./store"
 import { AuthS } from "~/services/services";
-import { CachedQuestions, NumberConfig, SurveyAnswer, SurveyAnswers, SurveyData, SurveyQuestion, SurveyQuestionType } from "~/types";
+import { CachedQuestions, NumberConfig, SurveyAnswer, SurveyAnswers, SurveyData, SurveyDataExtened, SurveyQuestion, SurveyQuestionType } from "~/types";
 import z, { ZodSafeParseResult } from "zod";
 import { unwrap } from "solid-js/store";
 
@@ -102,7 +102,7 @@ class State {
       return
     }
 
-    let data = res.result.content["surveys"] as any[]
+    let data = res.result.content["surveys"] as SurveyDataExtened[]
     if (!data) {
       return
     }
@@ -110,13 +110,14 @@ class State {
     let svs = data.map(val => {
 
       return {
-        id: val["id"],
-        title: val["title"],
-        description: val["description"],
-        owner_id: val["owner_id"],
-        is_public: val["is_public"],
-        created_at: val["created_at"],
-        state: val["state"]
+        id: val.survey["id"],
+        title: val.survey["title"],
+        description: val.survey["description"],
+        owner_id: val.survey["owner_id"],
+        is_public: val.survey["is_public"],
+        created_at: val.survey["created_at"],
+        state: val.survey["state"],
+        submited: val.submited
       } as SurveyData
     })
 
@@ -131,7 +132,7 @@ class State {
       return
     }
 
-    let data = res.result.content["surveys"] as any[]
+    let data = res.result.content["surveys"] as SurveyDataExtened[]
     if (!data) {
       return
     }
@@ -139,13 +140,14 @@ class State {
     let svs = data.map(val => {
 
       return {
-        id: val["id"],
-        title: val["title"],
-        description: val["description"],
-        owner_id: val["owner_id"],
-        is_public: val["is_public"],
-        created_at: val["created_at"],
-        state: val["state"]
+        id: val.survey["id"],
+        title: val.survey["title"],
+        description: val.survey["description"],
+        owner_id: val.survey["owner_id"],
+        is_public: val.survey["is_public"],
+        created_at: val.survey["created_at"],
+        state: val.survey["state"],
+        submited: val.submited
       } as SurveyData
     })
 
@@ -202,21 +204,15 @@ class State {
     questions[idx1] = questions[idx2]
     questions[idx2] = qTemp
 
-
-    let data: CachedQuestions = {
-      survey_id: surveyId,
-      questions: questions
-    }
-
     SetStore("surveyQuestions", surveyId, (prev) =>
-      questions
+      [...questions]
     );
 
   }
 
   async pushUpQuestion(surveyId: string, q_id: string) {
 
-    let qInfo = Store.surveyQuestions[surveyId]
+    let qInfo = unwrap(Store.surveyQuestions[surveyId])
     let questions = qInfo ?? []
 
     let idx = -1
@@ -240,7 +236,7 @@ class State {
 
   async pushDownQuestion(surveyId: string, q_id: string) {
 
-    let qInfo = Store.surveyQuestions[surveyId]
+    let qInfo = unwrap(Store.surveyQuestions[surveyId])
     let questions = qInfo ?? []
 
     let idx = -1
@@ -264,7 +260,7 @@ class State {
 
   async swapQuestionPosition(surveyId: string, q1_id: string, q2_id: string) {
 
-    let qInfo = Store.surveyQuestions[surveyId]
+    let qInfo = unwrap(Store.surveyQuestions[surveyId])
     let questions = qInfo ?? []
 
     let q1_idx = -1
@@ -292,7 +288,7 @@ class State {
 
     question.last_modified = new Date(Date.now());
 
-    const existingQuestions = Store.surveyQuestions[surveyId] ?? [];
+    const existingQuestions = unwrap(Store.surveyQuestions[surveyId]) ?? [];
     const questionIndex = existingQuestions.findIndex(q => q.id === questionId);
 
     if (questionIndex === -1) {
