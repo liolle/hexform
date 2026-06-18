@@ -1,4 +1,4 @@
-import { Component, createEffect, For, Match, Switch } from "solid-js"
+import { Component, createEffect, For, Match, Show, Switch } from "solid-js"
 import AppState from "~/state/state"
 import { SetStore, Store } from "~/state/store"
 import { SurveyData } from "~/types"
@@ -109,7 +109,7 @@ const SurveyCard = (props: SurveysCardProps) => {
   }
 
   return (
-    <div class=" relative h-24 border-base-100 p-1 border-b-1 rounded-[0.25rem] select-none flex justify-between cursor-pointer">
+    <div class=" relative h-24 border-base-100 p-1 border-b-1 rounded-[0.25rem] select-none flex justify-between">
       <div class="max-w-[400px] flex flex-col self-start">
         <div class="max-w-[400px]">
           <span class="text-content text-sm font-medium"> {props.data.title} </span>
@@ -119,11 +119,21 @@ const SurveyCard = (props: SurveysCardProps) => {
         </div>
       </div>
 
-      <button class="btn btn-soft btn-primary rounded-[.5rem] self-end" onclick={participate}>
-        <span class="text-content text-sm font-medium">
-          Participate
-        </span>
-      </button>
+      <Switch >
+        <Match when={!props.data.submited}>
+          <button class="btn btn-soft btn-primary rounded-[.5rem] self-end" onclick={participate}>
+            <span class="text-content text-sm font-medium">
+              Participate
+            </span>
+          </button>
+        </Match>
+        <Match when={props.data.submited}>
+          <span class="text-accent text-sm font-medium itatlic self-end">
+            submited
+          </span>
+        </Match>
+
+      </Switch>
     </div>
   )
 }
