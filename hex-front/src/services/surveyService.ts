@@ -2,7 +2,7 @@ import { unwrap } from "solid-js/store"
 import Client, { CachedClientResponse, CachedRequest, ClientResponse } from "~/state/httpClient"
 import AppState from "~/state/state"
 import { SetStore, Store } from "~/state/store"
-import { CachedQuestions, SurveyAnswer, SurveyAnswers, SurveyQuestion } from "~/types"
+import { CachedQuestions, SurveyAnswer, SurveyAnswers, SurveyQuestion, SurveyStat } from "~/types"
 
 
 
@@ -113,7 +113,7 @@ class SurveyService {
 
     if (is_preview) {
       // Send survey
-      console.log("send", unwrap(questions))
+      return true
     }
 
     let answers = unwrap(Store.surveyAnswers[surveyId])
@@ -135,10 +135,21 @@ class SurveyService {
       })
       .send()
 
-    console.log(response.result.content)
 
     SetStore("surveyAnswers", surveyId, (prev) => [])
     return true
+  }
+
+  async getSurveyStats(surveyId: string): Promise<ClientResponse> {
+
+    let response = await Client.get(`survey/${surveyId}/stats`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+      .send()
+
+
+    return response
   }
 
   /* Invalidate */

@@ -56,11 +56,13 @@ export interface AnswerCardProps {
 
 export interface RatingConfig {
   max: number
+  mean: number
 }
 
 export interface NumberConfig {
   min: number
   max: number
+  mean: number
 }
 
 export interface BoolConfig {
@@ -92,8 +94,48 @@ export interface SurveyDataExtened {
   survey: SurveyData
 }
 
+export interface QuestionsStat {
+  id: string
+  title: string
+  type: SurveyQuestionType
+  config: string
+  content: RatingStatConfig | NumberStatConfig | BoolStatConfig | TextStatConfig
+}
+
+export interface SurveyStat {
+  id: string,
+  submission_count: number
+  stats: QuestionsStat[]
+}
+
+
+export interface RatingStatConfig {
+  max: number
+  avg: number
+  std: number
+}
+
+export interface NumberStatConfig {
+  min: number
+  max: number
+  avg: number
+  std: number
+}
+
+export interface BoolStatConfig {
+  trueLabel: string
+  falseLabel: string
+  true_count: number
+  false_count: number
+}
+
+export interface TextStatConfig {
+  top_words: string[]
+}
+
+
+
 // DB 
-//
 
 export interface CachedQuestions {
   survey_id: string

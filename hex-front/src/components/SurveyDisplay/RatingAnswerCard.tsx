@@ -15,7 +15,7 @@ const RatingAnswerCard: Component<PropsType> = (props) => {
 
   const navigate = useNavigate()
 
-  let config: RatingConfig = { max: 2 }
+  let config: RatingConfig = { max: 2, mean: 2 }
 
   try {
 

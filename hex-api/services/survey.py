@@ -1,6 +1,6 @@
 from datetime import datetime
 from operator import and_
-from sqlalchemy import delete, func, insert, select, exists, and_
+from sqlalchemy import delete, func, insert, select, exists, and_, text
 from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.sql.functions import count
@@ -86,6 +86,182 @@ class SurveyService():
                 questions = con.execute(stm).scalars().all()
                 return Result(True,{"questions": questions}) 
             except Exception :
+                return Result(False,{"reason":"Could not get the survey questions"})
+
+
+    def get_survey_stats(self, survey_id:str, access_token:str)->Result:
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token"})
+
+        user_id = token_res.keys["claims"]["id"]
+
+
+        stm = select(Surveys).where(Surveys.id == survey_id )
+
+        cnt_submissions_stm = select(
+            func.count(Submissions.id)
+        ).where(and_(
+            Submissions.survey_id == survey_id
+        )).scalar_subquery()
+
+
+        full_stm = select(
+            cnt_submissions_stm.label("total_submission"),
+        )
+
+        query = text("""
+            WITH text_answers AS (
+                SELECT 
+                    q.id AS question_id,
+                    q.title,
+                    a.answer_text
+                FROM submissions sb
+                LEFT JOIN answers a ON a.submission_id = sb.id 
+                LEFT JOIN questions q ON q.id = a.question_id 
+                WHERE sb.survey_id = :survey_id
+                    AND q.type = 'TEXT'
+                    AND a.answer_text IS NOT NULL
+                    AND a.answer_text != ''
+            ),
+            word_freq AS (
+                SELECT 
+                    question_id,
+                    title,
+                    word,
+                    COUNT(*) AS frequency,
+                    ROW_NUMBER() OVER (PARTITION BY question_id ORDER BY COUNT(*) DESC) AS rank
+                FROM text_answers,
+                LATERAL regexp_split_to_table(lower(answer_text), '\\s+') AS word
+                WHERE length(word) > 2
+                    AND word NOT IN ('the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by')
+                GROUP BY question_id, title, word
+            ),
+            all_stats AS (
+                SELECT 
+                    q.id AS question_id,
+                    q.title,
+                    q.type,
+                    q.config,
+                    COUNT(DISTINCT sb.id) AS total_submissions,
+                    COUNT(a.id) AS total_answers,
+                    
+                -- Numeric stats
+                CASE WHEN q.type IN ('NUMBER', 'RATING') 
+                    THEN ROUND(AVG(a.answer_number)::numeric, 2) 
+                    ELSE NULL 
+                END AS avg_number,
+                CASE WHEN q.type IN ('NUMBER', 'RATING') 
+                    THEN MIN(a.answer_number) 
+                    ELSE NULL 
+                END AS min_number,
+                CASE WHEN q.type IN ('NUMBER', 'RATING') 
+                    THEN MAX(a.answer_number) 
+                    ELSE NULL 
+                END AS max_number,
+                
+                -- Boolean stats
+                CASE WHEN q.type = 'BOOL' 
+                    THEN SUM(CASE WHEN a.answer_bool = true THEN 1 ELSE 0 END) 
+                    ELSE NULL 
+                END AS true_count,
+                CASE WHEN q.type = 'BOOL' 
+                    THEN SUM(CASE WHEN a.answer_bool = false THEN 1 ELSE 0 END) 
+                    ELSE NULL 
+                END AS false_count,
+                
+                -- Text stats (will be filled separately)
+                NULL AS top_5_words
+                
+            FROM submissions sb
+            LEFT JOIN answers a ON a.submission_id = sb.id 
+            LEFT JOIN questions q ON q.id = a.question_id 
+            WHERE sb.survey_id = :survey_id
+            GROUP BY q.id, q.title, q.type
+        )
+
+
+        SELECT 
+            as2.*,
+            CASE WHEN as2.type = 'TEXT' THEN (
+                SELECT STRING_AGG(concat(word, '-', frequency), ',' ORDER BY rank)
+                FROM word_freq wf
+                WHERE wf.question_id = as2.question_id
+                    AND wf.rank <= 5
+            ) ELSE NULL END AS top_5_words_filled
+        FROM all_stats as2
+        ORDER BY question_id;        
+        """)
+ 
+        results = []
+        submission_count = 0
+        question_config = ""
+        
+        with dbConnection() as con:
+            try:
+                survey = con.execute(stm).scalar()
+
+                if not survey : 
+                    return Result(False,{"reason":"Could not find the survey stats", "status_code" : status.HTTP_404_NOT_FOUND })
+
+                if survey.state == SurveyState.CREATED:
+                    return Result(False,{"reason":"The survey is not published"})
+
+                res = con.execute(query,{"survey_id":survey_id}).all()
+
+
+                for row in res:
+
+                    print(row)
+                    q_stat = {}
+                    # ('SVQ-dp4gnh4tc2o42pgyrytyypqlurjaykzlayimbkds8ely', 'Are you ready', 'BOOL', 2, 2, None, None, None, 2, 0, None, None)
+                    (question_id,
+                        question_title,
+                        question_type,
+                        question_config,
+                        total_submissions,
+                        total_answers,
+                        avg_num,
+                        min_num,
+                        max_num,
+                        true_count,
+                        false_count, 
+                        other,
+                        top_5_words
+                    ) = row
+
+                    q_stat["id"] = question_id
+                    q_stat["title"] = question_title
+                    q_stat["type"] = question_type
+                    q_stat["config"] = question_config if question_config else ""
+                    submission_count = total_submissions
+
+                    match question_type:
+                        case "TEXT":
+                            q_stat["content"] = {"top_words" : top_5_words.split(",")}
+                            pass
+
+                        case "NUMBER":
+                            q_stat["content"] = {"min":min_num,"max":max_num,"avg":avg_num}
+                            pass
+
+                        case "BOOL":
+                            q_stat["content"] = {"true_count":true_count,"false_count":false_count}
+                            pass
+
+                        case "RATING":
+                            q_stat["content"] = {"min":min_num,"max":max_num,"avg":avg_num}
+                            pass
+                    results.append(q_stat)
+                
+
+                return Result(True,{"submission_count":submission_count,"stats":results}) 
+            except Exception as e:
+                print(e)
                 return Result(False,{"reason":"Could not get the survey questions"})
 
 
@@ -374,6 +550,8 @@ class SurveyService():
 
         user_id = token_res.keys["claims"]["id"]
 
+        survey_select_stm = select(Surveys).where(Surveys.id == survey_id)
+
         submission_exist_stm = select(Submissions).where(and_(
             Submissions.survey_id == survey_id,
             Submissions.user_id == user_id
@@ -449,6 +627,12 @@ class SurveyService():
 
         with dbConnection() as con:
             try:
+                survey = con.execute(survey_select_stm).scalar()
+
+                if not survey  or survey.state != SurveyState.PUBLISHED:
+                    return Result(False,{"reason": "Survey is not published" })
+
+
                 sb = con.execute(submission_exist_stm).scalar()
 
                 if sb:

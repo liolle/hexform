@@ -10,6 +10,7 @@ import DashboardFooter from "./dashboardFooter"
 import DashboardPanel from "./dashboardPanel"
 import { SurveyData, SurveyState } from "~/types"
 import { unwrap } from "solid-js/store"
+import SurveyStats from "../surveyStat/surveyStats"
 
 
 const Dashboard: Component = () => {
@@ -52,12 +53,15 @@ const SurveyDetails = () => {
           <SurveyEditor survey={activeSurvey()} />
         </Match>
         <Match when={!!activeSurvey() && activeSurvey()?.state == SurveyState.DONE || activeSurvey()?.state == SurveyState.PUBLISHED}>
-          <span>Stats</span>
+          <SurveyStats survey_id={Store.activeDashboardSurveyId} />
         </Match>
       </Switch>
     </div>
   )
 }
+
+
+
 
 const DashboardBody = () => {
   return (

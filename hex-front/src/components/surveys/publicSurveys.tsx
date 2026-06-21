@@ -31,43 +31,6 @@ const PublicSurveys: Component = () => {
       <SurveysPanel />
       <Surveys />
 
-      {
-        /*
-         *
-         *
-         *
-        <Switch>
-          <Match when={Store.activeSurveyId == ""}>
-            <Surveys />
-          </Match>
-          <Match when={Store.activeSurveyId != ""}>
-            <div class="flex flex-1  ">
-              <div class="flex w-fit h-24  w-full items-center justify-between">
-                <div class=" relative h-24 border-base-100 p-1 border-b-1 rounded-[0.25rem] select-none flex flex-col ">
-                  <div class="max-w-[400px]">
-                    <span class="text-content text-sm font-medium"> {activeSurvey()?.title} </span>
-                  </div>
-                  <div class="max-w-[400px] wrap-anywhere leading-none">
-                    <span class=" text-content text-xs opacity-60"> {activeSurvey()?.description} </span>
-                  </div>
-                </div>
-
-                <button class="btn btn-soft btn-primary rounded-[.5rem]" onclick={participate}>
-                  <span class="text-content text-sm font-medium">
-                    Participate
-                  </span>
-                </button>
-              </div>
-
-
-            </div>
-          </Match>
-        </Switch>
-
-         *
-         * */
-      }
-
     </div>
 
   )
