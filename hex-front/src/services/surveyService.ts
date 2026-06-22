@@ -33,9 +33,9 @@ class SurveyService {
     return response
   }
 
-  async getSurvey(surveyId: string, include_questions = false): Promise<ClientResponse> {
+  async getSurvey(surveyId: string, key = "", include_questions = false): Promise<ClientResponse> {
 
-    let response = await Client.get(`surveys/${surveyId}?include_questions=${include_questions}`)
+    let response = await Client.get(`surveys/${surveyId}?include_questions=${include_questions}&key=${key}`)
       .withHeaders([
         ["Content-Type", "application/json"]
       ]).withAuth()
@@ -59,7 +59,6 @@ class SurveyService {
   }
 
   async updateSurveyQuestion(data: object, surveyId: string): Promise<ClientResponse> {
-    console.log(data)
     let response = await Client.patch(`surveys/${surveyId}/questions`)
       .withHeaders([
         ["Content-Type", "application/json"]
@@ -91,7 +90,19 @@ class SurveyService {
   }
 
 
-  async sendSurvey(surveyId: string, is_preview: boolean): Promise<boolean> {
+  async getSurveyKeys(surveyId: string): Promise<ClientResponse> {
+
+    let response = await Client.get(`survey/${surveyId}/keys`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+      .send()
+
+    return response
+  }
+
+
+  async sendSurvey(surveyId: string, is_preview: boolean, key: string = ""): Promise<boolean> {
 
     let questions = unwrap(Store.surveyQuestions[surveyId])
 
@@ -131,7 +142,8 @@ class SurveyService {
         ["Content-Type", "application/json"]
       ]).withAuth()
       .withBody({
-        responses: data
+        responses: data,
+        key: key
       })
       .send()
 

@@ -1,11 +1,11 @@
 from datetime import datetime
 from operator import and_
-from sqlalchemy import delete, func, insert, select, exists, and_, text
+from sqlalchemy import Boolean, delete, func, insert, select, exists, and_, text
 from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.sql.functions import count
 from dto import SurveyData, CreateSurveyForm, SurveyQuestionForm, SubmitSurveyForm
-from database import Surveys, SurveyState,Submissions, Questions, Answers, QType, dbConnection
+from database import Surveys, SurveyState,Submissions, Questions, Answers,SurveyKeys, QType, dbConnection
 from utils import generate_id, Result
 from services import verify_token
 from fastapi import status
@@ -109,11 +109,6 @@ class SurveyService():
             Submissions.survey_id == survey_id
         )).scalar_subquery()
 
-
-        full_stm = select(
-            cnt_submissions_stm.label("total_submission"),
-        )
-
         query = text("""
             WITH text_answers AS (
                 SELECT 
@@ -216,9 +211,7 @@ class SurveyService():
 
                 for row in res:
 
-                    print(row)
                     q_stat = {}
-                    # ('SVQ-dp4gnh4tc2o42pgyrytyypqlurjaykzlayimbkds8ely', 'Are you ready', 'BOOL', 2, 2, None, None, None, 2, 0, None, None)
                     (question_id,
                         question_title,
                         question_type,
@@ -498,7 +491,7 @@ class SurveyService():
                 return Result(False,{"reason":"Could not get the surveys"})
 
 
-    def publish_survey_by_id(self,id:str, access_token:str)->Result:
+    def publish_survey_by_id(self,survey_id:str, access_token:str)->Result:
         token_res = verify_token(access_token)
 
         if not token_res.success: 
@@ -509,7 +502,7 @@ class SurveyService():
 
         user_id = token_res.keys["claims"]["id"]
         res = {}
-        stm = select(Surveys).where(Surveys.id == id)
+        stm = select(Surveys).where(Surveys.id == survey_id)
 
         with dbConnection() as con:
             try:
@@ -529,6 +522,19 @@ class SurveyService():
 
                 survey.state = SurveyState.PUBLISHED 
 
+                if not survey.is_public:
+                    key_id = generate_id(42,"SVK")
+                    key = generate_id(60,"")
+
+                    survey_key = {
+                        "id": key_id,
+                        "survey_id": survey_id,
+                        "value": key  
+                    }
+
+                    insertStm = insert(SurveyKeys).values(survey_key)
+                    con.execute(insertStm)
+
                 con.commit()
                 con.refresh(survey)
 
@@ -537,6 +543,42 @@ class SurveyService():
             except Exception:
                 return Result(False,{"reason":"Could not get the survey"})
 
+    def get_survey_keys(self,survey_id:str,access_token:str)->Result:
+        token_res = verify_token(access_token)
+
+        if not token_res.success: 
+            return token_res
+
+        print(token_res)
+
+        if not "id" in token_res.keys["claims"]:
+            return Result(False,{"reason":"Malformed access token" })
+
+        user_id = token_res.keys["claims"]["id"]
+
+        stm = select(Surveys).where(Surveys.id == survey_id)
+
+
+        with dbConnection() as con:
+            try:
+                survey = con.execute(stm).scalar()
+
+                if survey == None:
+                    return Result(False,{"reason": "Not found", "status_code" : status.HTTP_404_NOT_FOUND })
+
+                if survey.owner_id != user_id :
+                    return Result(False,{"reason": "Not allowed", "status_code" : status.HTTP_403_FORBIDDEN })
+
+
+                keys = [x.value for x in survey.keys]
+
+                return Result(True, {"keys": keys}) 
+
+            except Exception :
+                return Result(False,{"reason": "Could not get survey keys" })
+
+
+    true_values = {'true', '1', 'yes', 'y', 'on', 't', 'ok', 'agree', 'positive'}
 
     def submit_survey(self,data:SubmitSurveyForm,access_token:str,survey_id:str)->Result:
 
@@ -609,7 +651,7 @@ class SurveyService():
                     pass
 
                 case "BOOL":
-                    r["answer_bool"] = bool(q.response) 
+                    r["answer_bool"] = True if q.response.lower() in self.true_values else False 
                     pass
 
             responses.append(r)
@@ -631,6 +673,11 @@ class SurveyService():
 
                 if not survey  or survey.state != SurveyState.PUBLISHED:
                     return Result(False,{"reason": "Survey is not published" })
+
+                keys = [x.value for x in survey.keys] 
+
+                if not survey.is_public and not data.key in keys :
+                    return Result(False,{"reason": "Invalid submission key", "status_code" : status.HTTP_403_FORBIDDEN  })
 
 
                 sb = con.execute(submission_exist_stm).scalar()

@@ -32,7 +32,6 @@ const LoginForm: Component = () => {
         break;
 
       default:
-        console.log(response)
         break;
     }
 

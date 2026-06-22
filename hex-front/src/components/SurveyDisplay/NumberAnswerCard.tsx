@@ -14,7 +14,7 @@ interface PropsType {
 
 
 const NumberAnswerCard: Component<PropsType> = (props) => {
-  let config: NumberConfig = { min: 0, max: 100 }
+  let config: NumberConfig = { min: 0, max: 100, mean: 0 }
   let input: HTMLInputElement | undefined
   const navigate = useNavigate()
 
@@ -71,7 +71,7 @@ const NumberAnswerCard: Component<PropsType> = (props) => {
   }
 
   const submit = async () => {
-    let success = await SurveyS.sendSurvey(props.data.surveyId, props.data.is_preview)
+    let success = await SurveyS.sendSurvey(props.data.surveyId, props.data.is_preview, props.data.key)
     if (!success) {
       return
     }

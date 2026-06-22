@@ -1,7 +1,7 @@
 
 
-import { Component, createEffect, createMemo, createSignal, For, onMount } from "solid-js";
-import { BoolStatConfig, RatingConfig, RatingStatConfig } from "~/types";
+import { Component, createEffect, createSignal, For } from "solid-js";
+import { RatingStatConfig } from "~/types";
 
 interface StatCardProps {
   config: string
@@ -37,7 +37,7 @@ const RatingStatCard: Component<StatCardProps> = (props) => {
     if (half === 'p1') {
       return mean >= pos;
     } else {
-      return mean >= pos + 0.5;
+      return mean >= pos && mean <= pos + 0.5;
     }
   };
 

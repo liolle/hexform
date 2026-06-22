@@ -25,6 +25,8 @@ class SurveyAnswerForm(BaseModel):
 
 class SubmitSurveyForm(BaseModel):
     responses:list[SurveyAnswerForm] 
+    key : str | None
+    
 
 
 class SurveyData():

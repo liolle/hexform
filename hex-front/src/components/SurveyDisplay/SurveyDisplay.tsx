@@ -11,7 +11,8 @@ import { unwrap } from "solid-js/store"
 
 interface SurveyDisplayProps {
   surveyId: string,
-  preview: boolean
+  preview: boolean,
+  key: string
 }
 
 const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps) => {
@@ -75,7 +76,14 @@ const SurveyDisplay: Component<SurveyDisplayProps> = (props: SurveyDisplayProps)
         </div>
       </div>
       <div class="flex flex-col flex-1 justify-center items-center">
-        <QuestionCard surveyId={props.surveyId} answer={answer()} position={position} setPosition={setPosition} answer_count={answers().length} is_preview={props.preview} />
+        <QuestionCard surveyId={props.surveyId}
+          answer={answer()}
+          position={position}
+          setPosition={setPosition}
+          answer_count={answers().length}
+          is_preview={props.preview}
+          key={props.key}
+        />
       </div>
     </div>
   )

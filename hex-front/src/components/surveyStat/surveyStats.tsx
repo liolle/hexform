@@ -1,4 +1,4 @@
-import { For, Match, Switch } from "solid-js";
+import { createSignal, For, Match, Switch } from "solid-js";
 import { Component, createResource, Suspense } from "solid-js";
 import { BoolStatConfig, NumberStatConfig, QuestionsStat, RatingConfig, RatingStatConfig, SurveyQuestionType, SurveyStat, TextStatConfig } from "~/types";
 import TextQuestionCard from "../surveyEditor/TextQuestionCard";
@@ -12,6 +12,11 @@ interface PropsType {
   survey_id: string
 }
 
+interface SurveyStatRessourceType {
+  data: SurveyStat,
+  keys: string[]
+}
+
 const SurveyStats: Component<PropsType> = (props) => {
 
   return (
@@ -21,20 +26,28 @@ const SurveyStats: Component<PropsType> = (props) => {
   )
 }
 
+
+
 const SurveyStatResource: Component<PropsType> = (props) => {
-  const [ressource] = createResource<SurveyStat>(async () => {
+  const [link, setLink] = createSignal("")
+  const [ressource] = createResource<SurveyStatRessourceType>(async () => {
 
 
     let response = await SurveyS.getSurveyStats(props.survey_id)
+    let key_response = await SurveyS.getSurveyKeys(props.survey_id)
 
     let s_stat = response.result["content"] as SurveyStat
+    let keys = key_response.result["content"]["keys"] as string[]
+
+
+    let key = keys[0] ?? ""
+    let link = `http://localhost:3000/survey/${props.survey_id}${key == "" ? "" : `?key=${key}`}`
+    setLink(link)
 
     let stats: QuestionsStat[] = s_stat.stats.map(v => {
       let res = {
         ...v
       } as QuestionsStat
-
-
 
 
       switch (v.type) {
@@ -53,8 +66,17 @@ const SurveyStatResource: Component<PropsType> = (props) => {
             return v.split("-")[0]
           })
 
-          //res.content = text_content
           break;
+
+        case SurveyQuestionType.RATING:
+          let rating_content = v.content as RatingStatConfig
+          let rating_config: RatingConfig = JSON.parse(v.config)
+
+          rating_content.max = rating_config.max
+
+          break;
+
+
 
 
         default:
@@ -64,91 +86,42 @@ const SurveyStatResource: Component<PropsType> = (props) => {
       return res
     })
 
-
-    console.log(stats)
-
-    let elems: QuestionsStat[] = [
-      {
-        "id": "q1",
-        "title": "question 1",
-        "type": SurveyQuestionType.TEXT,
-        "config": "",
-        "content":
-          {
-            top_words: ["word1", "word2"]
-          } as TextStatConfig
-      },
-      {
-        "id": "q1",
-        "title": "question 1",
-        "type": SurveyQuestionType.TEXT,
-        "config": "",
-        "content":
-          {
-            top_words: ["word1", "word2", "word3", "word4", "word5"]
-          } as TextStatConfig
-      },
-      {
-        "id": "q1",
-        "title": "Are you ready",
-        "type": SurveyQuestionType.BOOL,
-        "config": "",
-        "content":
-          {
-            trueLabel: "Yes",
-            falseLabel: "No",
-            true_count: 13,
-            false_count: 5
-          } as BoolStatConfig
-      },
-      {
-        "id": "q1",
-        "title": "How much do you like this app ?",
-        "type": SurveyQuestionType.RATING,
-        "config": "",
-        "content":
-          {
-            max: 5,
-            avg: 3.5
-          } as RatingStatConfig
-      },
-      {
-        "id": "q1",
-        "title": "Pick a number between 10 and 30 ?",
-        "type": SurveyQuestionType.NUMBER,
-        "config": "",
-        "content":
-          {
-            max: 22,
-            avg: 18,
-            min: 16
-          } as NumberStatConfig
-      },
-
-
-    ]
-
-
     return {
-      id: props.survey_id,
-      submission_count: s_stat.submission_count,
-      stats: stats
+      keys: keys,
+      data: {
+        id: props.survey_id,
+        submission_count: s_stat.submission_count,
+        stats: stats
+      }
+
     }
   })
 
+  const copyLink = () => {
+    navigator.clipboard.writeText(link())
+  }
+
   return (
     <div class="flex h-full flex-col gap-4 px-4">
-      <div class="flex justify-end ">
+      <div class="flex justify-between ">
+        <div class="flex justify-end items-end gap-4 select-none">
+          <div class="flex justify-between items-center gap-4 h-12">
+            <span class="stat-title max-w-[400px] truncate" >{link()}</span>
+            <div class="btn btn-ghost btn-accent rounded-[.5rem] " onclick={copyLink}>
+              <span class="text-xs">Copy</span>
+            </div>
+          </div>
+        </div>
         <div class="stats shadow rounded-[.5rem] border-1 border-base-100  select-none">
           <div class="stat">
             <span class="stat-title">Total Submissions</span>
-            <span class="stat-value">{ressource()?.submission_count}</span>
+            <span class="stat-value">{ressource()?.data.submission_count}</span>
           </div>
         </div>
       </div>
       <div class="flex flex-1 overflow-y-auto">
         <div class=" flex flex-col gap-8 max-h-[400px] w-full">
-          <For each={ressource()?.stats}>
+          <For each={ressource()?.data.stats}>
             {
               (item, idex) => {
                 return (
@@ -164,7 +137,7 @@ const SurveyStatResource: Component<PropsType> = (props) => {
 }
 
 interface StartCardProps {
-  data: QuestionsStat
+  data: QuestionsStat,
 }
 
 const StatCard: Component<StartCardProps> = (props) => {

@@ -28,7 +28,7 @@ const SurveyEditor = (props: SurveyEditorProps) => {
 
   createEffect(async () => {
     //await SurveyS.invalidateSurvay(survey.id)
-    let res = await SurveyS.getSurvey(survey.id, true)
+    let res = await SurveyS.getSurvey(survey.id, "", true)
     let questions: SurveyQuestion[] = res.result.content["data"]["survey"]["questions"] ?? []
     let resolvedQuestions = await SurveyS.resolveQuestions(survey.id, questions)
 

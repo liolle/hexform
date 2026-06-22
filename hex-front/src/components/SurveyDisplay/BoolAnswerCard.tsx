@@ -1,10 +1,9 @@
 import { useNavigate } from "@solidjs/router";
 import { Component, Match, Show, Switch } from "solid-js";
 import { SurveyS } from "~/services/surveyService";
-import DB, { DBStoreNames } from "~/state/database";
 import AppState from "~/state/state";
 import { Store } from "~/state/store";
-import { AnswerCardProps, BoolConfig, SurveyAnswers } from "~/types";
+import { AnswerCardProps, BoolConfig } from "~/types";
 
 interface PropsType {
   data: AnswerCardProps
@@ -55,7 +54,7 @@ const BoolAnswerCard: Component<PropsType> = (props) => {
   }
 
   const submit = async () => {
-    let success = await SurveyS.sendSurvey(props.data.surveyId, props.data.is_preview)
+    let success = await SurveyS.sendSurvey(props.data.surveyId, props.data.is_preview, props.data.key)
     if (!success) {
       return
     }

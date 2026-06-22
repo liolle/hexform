@@ -56,7 +56,24 @@ def submit_survey(data:SubmitSurveyForm, id:str,
 
     return res.keys
 
-    pass
+
+@router.get("/survey/{id}/keys")
+def get_survey_keys( id:str,
+                  surveys:SurveyService = Depends(SurveyService),
+                  credentials: HTTPAuthorizationCredentials = Depends(security)
+                  ):
+
+    res = surveys.get_survey_keys(id,credentials.credentials)
+
+    if not res.success: 
+        raise HTTPException(
+            status_code=res.keys["status_code"] if "status_code" in res.keys else status.HTTP_400_BAD_REQUEST,
+            detail= res.keys["reason"] 
+        )
+
+    return res.keys
+
+
 
 
 

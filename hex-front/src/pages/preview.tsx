@@ -14,7 +14,7 @@ const PreviewPage: Component = () => {
       return
     }
 
-    let response = await SurveyS.getSurvey(params.id, true)
+    let response = await SurveyS.getSurvey(params.id, "", true)
 
     if (response.result.status >= 300) {
       return

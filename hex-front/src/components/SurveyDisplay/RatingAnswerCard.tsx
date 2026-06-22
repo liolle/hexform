@@ -76,7 +76,7 @@ const RatingAnswerCard: Component<PropsType> = (props) => {
   }
 
   const submit = async () => {
-    let success = await SurveyS.sendSurvey(props.data.surveyId, props.data.is_preview)
+    let success = await SurveyS.sendSurvey(props.data.surveyId, props.data.is_preview, props.data.key)
     if (!success) {
       return
     }

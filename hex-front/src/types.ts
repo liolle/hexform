@@ -45,13 +45,13 @@ export interface QuestionCardProps {
 }
 
 export interface AnswerCardProps {
-
   surveyId: string
   answer_count: number
   is_preview: boolean
   answer: SurveyAnswer
   position: Accessor<number>
   setPosition: Setter<number>
+  key: string
 }
 
 export interface RatingConfig {

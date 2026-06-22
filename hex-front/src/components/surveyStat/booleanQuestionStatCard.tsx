@@ -12,22 +12,27 @@ const BooleanStatCard: Component<StatCardProps> = (props) => {
 
   const [trueValue, setTrueValue] = createSignal(40)
 
-  let config: BoolStatConfig = {
-    true_count: 0,
-    false_count: 0,
-    trueLabel: "True",
-    falseLabel: "False"
-  }
+  const [config, setConfig] = createSignal<BoolStatConfig>(
+    {
+      true_count: 0,
+      false_count: 0,
+      trueLabel: "True",
+      falseLabel: "False"
+    }
 
+  )
 
   onMount(() => {
     try {
-      config = JSON.parse(props.config)
+      let conf: BoolStatConfig = JSON.parse(props.config)
 
-      let total = config.true_count + config.false_count
+      let total = conf.true_count + conf.false_count
 
-      let truePer = total == 0 ? 50 : Math.round(config.true_count * 100 / total)
+
+
+      let truePer = total == 0 ? 50 : Math.round(conf.true_count * 100 / total)
       setTrueValue(truePer)
+      setConfig(conf)
 
     } catch (error) { }
 
@@ -47,12 +52,12 @@ const BooleanStatCard: Component<StatCardProps> = (props) => {
           <div class=" flex gap-2 p-1">
 
             <div class={`w-32 h-16 border-1 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary ${trueValue() > 50 ? "outline-1" : ""}`}>
-              <span class="text-xs text-content opacity-60">{config.trueLabel}</span>
+              <span class="text-xs text-content opacity-60">{config().trueLabel}</span>
               <span class="text-xs text-content font-bold">{`${trueValue()}%`}</span>
             </div>
 
             <div class={`w-32 h-16 border-1 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary ${trueValue() < 50 ? "outline-1" : ""}`}>
-              <span class="text-xs text-content opacity-60">{config.falseLabel}</span>
+              <span class="text-xs text-content opacity-60">{config().falseLabel}</span>
               <span class="text-xs text-content font-bold ">{`${100 - trueValue()}%`}</span>
             </div>
 
