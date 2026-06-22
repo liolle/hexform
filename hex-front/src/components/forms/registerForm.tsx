@@ -83,7 +83,6 @@ const RegisterForm: Component = () => {
         break;
 
       default:
-        console.log(response)
         break;
     }
 

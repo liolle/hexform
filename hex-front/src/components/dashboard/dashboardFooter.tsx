@@ -1,9 +1,9 @@
-import { Component, Match, Switch } from "solid-js"
+import { Component, Match, Show, Switch } from "solid-js"
 import { SurveyS } from "~/services/surveyService"
 import DB, { DBStoreNames } from "~/state/database"
 import AppState from "~/state/state"
-import { Store } from "~/state/store"
-import { CachedQuestions, SurveyQuestion } from "~/types"
+import { SetStore, Store } from "~/state/store"
+import { CachedQuestions, SurveyQuestion, SurveyState } from "~/types"
 
 
 const tempQid = new RegExp("TEMP-.*")
@@ -40,13 +40,9 @@ const DashboardFooter: Component = () => {
       return
     }
 
-    let local_questions = await DB.getFromKey(DBStoreNames.LOCAL_QUESTIONS, surveyId) as CachedQuestions
-    let questions = local_questions.questions
+    let questions = Store.surveyQuestions[surveyId] ?? []
 
-    if (!questions) {
-      sending = false
-      return
-    }
+
 
     let qs = questions.map(v => {
       return {
@@ -65,13 +61,21 @@ const DashboardFooter: Component = () => {
 
     if (res.result.status == 401) {
 
-      AppState.connected = false
       AppState.accessToken = ""
 
+      sending = false
+      return
     }
+
+
+    SetStore("surveyQuestions", surveyId, () => res.result.content["questions"])
+    SurveyS.invalidateSurvey(surveyId)
 
     sending = false
   }
+
+
+  let activeSurvey = () => Store.dashboardSurveys?.find(v => v.id == Store.activeDashboardSurveyId)
 
 
   return (
@@ -88,22 +92,26 @@ const DashboardFooter: Component = () => {
 
         <Match when={!!Store.activeDashboardSurveyId}>
           <div class="flex flex-1 justify-between">
-            <button class="btn btn-info rounded-[.5rem]"
-              disabled={(() => {
-                const surveyErrors = Store.surveyQuestionsErrors?.[Store.activeDashboardSurveyId]
-                if (!surveyErrors) return false
+            <div>
+              <Show when={activeSurvey()?.state == SurveyState.CREATED}>
+                <button class="btn btn-soft btn-info rounded-[.5rem]"
+                  disabled={(() => {
+                    const surveyErrors = Store.surveyQuestionsErrors?.[Store.activeDashboardSurveyId]
+                    if (!surveyErrors) return false
 
-                // Check if any question has any non-empty error message
-                return Object.values(surveyErrors).some(questionErrors =>
-                  Object.values(questionErrors).some(error => error && error.trim() !== "")
-                )
-              })()}
-              onclick={SaveSurvey}>
-              <span class="text-content text-sm font-medium">
-                Save
-              </span>
-            </button>
-            <button class="btn btn-error rounded-[.5rem]" onclick={openDeleteSurveyModal}>
+                    // Check if any question has any non-empty error message
+                    return Object.values(surveyErrors).some(questionErrors =>
+                      Object.values(questionErrors).some(error => error && error.trim() !== "")
+                    )
+                  })()}
+                  onclick={SaveSurvey}>
+                  <span class="text-content text-sm font-medium">
+                    Save
+                  </span>
+                </button>
+              </Show>
+            </div>
+            <button class="btn btn-soft btn-error rounded-[.5rem]" onclick={openDeleteSurveyModal}>
               <span class="text-content text-sm font-medium">
                 Delete survey
               </span>

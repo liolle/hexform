@@ -52,3 +52,8 @@ class Submissions(dbBase):
         UniqueConstraint("user_id", "survey_id", name="uk_submissions"),
     )
 
+    def __repr__(self) -> str:
+        return f"{self.id} : {self.user_id} : {self.survey_id} : {self.key_id}"
+
+
+

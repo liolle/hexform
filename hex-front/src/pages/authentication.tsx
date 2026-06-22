@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "@solidjs/router";
-import { Component, createSignal, Switch, Match, onMount, createEffect } from "solid-js";
+import localforage from "localforage";
+import { Component, createSignal, createEffect } from "solid-js";
 import LoginForm from "~/components/forms/loginFrom";
 import RegisterForm from "~/components/forms/registerForm";
 import AppState from "~/state/state";
@@ -23,6 +24,7 @@ const AuthPage: Component = () => {
 
 
 
+
   switch (params.subpage) {
     case "login":
       setsubpage(AuthPageType.Login)
@@ -37,9 +39,8 @@ const AuthPage: Component = () => {
 
   }
 
-  createEffect(() => {
+  createEffect(async () => {
     if (AppState.connected) {
-
       navigate('/home', { replace: true });
     }
   });

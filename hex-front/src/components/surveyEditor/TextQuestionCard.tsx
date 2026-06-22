@@ -30,6 +30,9 @@ const TextQuestionCard = (props: QuestionCardProps) => {
 
   const handleInput = (e: InputEvent) => {
 
+    q.config = ""
+
+
     const target = e.target as HTMLInputElement;
     const newValue = target.value;
     switch (target.name) {
@@ -49,7 +52,7 @@ const TextQuestionCard = (props: QuestionCardProps) => {
     let sErr = Store.surveyQuestionsErrors[props.surveyId] ?? []
     return sErr.filter(v => {
       let rexp = new RegExp(`${props.question.id}:*`)
-      return rexp.test(v.field)
+      return rexp.test(v.key)
     }).map(v => v.value)
   }
 

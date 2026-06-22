@@ -9,6 +9,8 @@ import CreateQuestionDialog from "./CreateQuestionDialog"
 import DashboardFooter from "./dashboardFooter"
 import DashboardPanel from "./dashboardPanel"
 import { SurveyData, SurveyState } from "~/types"
+import { unwrap } from "solid-js/store"
+import SurveyStats from "../surveyStat/surveyStats"
 
 
 const Dashboard: Component = () => {
@@ -18,11 +20,12 @@ const Dashboard: Component = () => {
   })
 
   return (
-    <div class="flex-1 p-[16px] flex flex-col gap-4">
+    <div class="flex-1 p-[16px] pt-0 flex flex-col gap-4">
 
       <CreateSurveyDialog />
       <DeleteSurveyDialog />
       <CreateQuestionDialog />
+
       <DashboardPanel />
 
       <Switch>
@@ -42,6 +45,7 @@ const SurveyDetails = () => {
 
   let activeSurvey = () => Store.dashboardSurveys?.find(v => v.id == Store.activeDashboardSurveyId)
 
+
   return (
     <div class="flex-1 flex bg-transparent flex flex-col gap-2 ">
       <Switch>
@@ -49,12 +53,15 @@ const SurveyDetails = () => {
           <SurveyEditor survey={activeSurvey()} />
         </Match>
         <Match when={!!activeSurvey() && activeSurvey()?.state == SurveyState.DONE || activeSurvey()?.state == SurveyState.PUBLISHED}>
-          <span>Stats</span>
+          <SurveyStats survey_id={Store.activeDashboardSurveyId} />
         </Match>
       </Switch>
     </div>
   )
 }
+
+
+
 
 const DashboardBody = () => {
   return (

@@ -8,6 +8,7 @@ import { NumberQuestionCard } from "./NumberQuestionCard"
 import { BoolQuestionCard } from "./BooleanQuestionCard"
 import { AiFillCaretDown, AiFillCaretUp } from "solid-icons/ai"
 import AppState from "~/state/state"
+import { unwrap } from "solid-js/store"
 
 interface SurveyEditorProps {
   survey: SurveyData | undefined
@@ -25,25 +26,22 @@ const SurveyEditor = (props: SurveyEditorProps) => {
     )
   }
 
-
   createEffect(async () => {
     //await SurveyS.invalidateSurvay(survey.id)
-    let res = await SurveyS.getSurvey(survey.id, true)
-    let questions: SurveyQuestion[] = res.result.content["survey"]["questions"] ?? []
+    let res = await SurveyS.getSurvey(survey.id, "", true)
+    let questions: SurveyQuestion[] = res.result.content["data"]["survey"]["questions"] ?? []
     let resolvedQuestions = await SurveyS.resolveQuestions(survey.id, questions)
+
+    resolvedQuestions.sort((a, b) => a.position - b.position)
+
 
     SetStore("surveyQuestions", survey.id, (prev) => [...resolvedQuestions])
   })
 
-  let questions = () => {
-    let sq = Store.surveyQuestions
-    return sq[survey.id]
-  }
-
   return (
     <div class="flex flex-col gap-4 relative overflow-y-auto" >
       <div class="max-h-[700px]">
-        <For each={questions()}>
+        <For each={Store.surveyQuestions[survey.id]}>
           {(item, index) =>
             <QuestionCard surveyId={survey.id} questionId={item.id} question={item} />
           }
@@ -67,11 +65,11 @@ const QuestionCard: Component<QuestionCardProps> = (props: QuestionCardProps) =>
   return (
     <div class="relative">
       <div class="absolute top-[1rem] right-[.5rem] flex flex-col gap-2">
-        <button class="btn btn-soft btn-outline btn-accent rounded-[.25rem] p-0 w-8 h-4" onclick={pushUp}>
+        <button class="btn btn-soft btn-outline btn-info rounded-[.25rem] p-0 w-8 h-4" onclick={pushUp}>
           <AiFillCaretUp />
         </button>
 
-        <button class="btn btn-soft btn-outline btn-accent rounded-[.25rem] p-0 w-8 h-4" onclick={pushDown}>
+        <button class="btn btn-soft btn-outline btn-info rounded-[.25rem] p-0 w-8 h-4" onclick={pushDown}>
           <AiFillCaretDown />
         </button>
       </div>

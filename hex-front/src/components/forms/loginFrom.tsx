@@ -28,12 +28,10 @@ const LoginForm: Component = () => {
           return
         }
         AppState.accessToken = token
-        AppState.connected = true
         navigate('/home', { replace: true });
         break;
 
       default:
-        console.log(response)
         break;
     }
 

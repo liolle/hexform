@@ -18,6 +18,17 @@ class SurveyQuestionForm(BaseModel):
 class UpdateSurveyQuestionForm(BaseModel):
     questions : list[SurveyQuestionForm] 
 
+class SurveyAnswerForm(BaseModel):
+    id:str
+    response:str
+    type:str
+
+class SubmitSurveyForm(BaseModel):
+    responses:list[SurveyAnswerForm] 
+    key : str | None
+    
+
+
 class SurveyData():
     _id:str
     _title:str
@@ -46,4 +57,5 @@ class SurveyData():
         self._title = title
         self._description = description
         self._is_public = is_public
+
 

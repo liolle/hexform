@@ -1,5 +1,5 @@
 import { IoTrashBinOutline } from "solid-icons/io";
-import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { batch, Show } from "solid-js";
 import { unwrap } from "solid-js/store";
 import z from "zod";
 import AppState from "~/state/state";
@@ -54,6 +54,12 @@ export const BoolQuestionCard = (props: QuestionCardProps) => {
     } catch (error) {
     }
 
+
+    batch(() => {
+
+    })
+
+
     debouncedSaveQuestion(props.surveyId, q);
   }
 
@@ -61,7 +67,7 @@ export const BoolQuestionCard = (props: QuestionCardProps) => {
     let sErr = Store.surveyQuestionsErrors[props.surveyId] ?? []
     return sErr.filter(v => {
       let rexp = new RegExp(`${props.question.id}:*`)
-      return rexp.test(v.field)
+      return rexp.test(v.key)
     }).map(v => v.value)
   }
 
