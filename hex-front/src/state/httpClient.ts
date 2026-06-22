@@ -3,6 +3,9 @@ import DB, { DBStoreNames } from "./database"
 import AppState from "./state"
 import { SetStore, Store } from "./store"
 
+
+const BASE_API_URL = import.meta.env.VITE_API_URL || '';
+
 enum RequestMethod {
   "POST" = "POST",
   "GET" = "GET",
@@ -34,7 +37,7 @@ export interface CachedRequest {
 }
 
 export class ClientRequest {
-  url: string = "http://localhost"
+  url: string = BASE_API_URL
   method: RequestMethod = RequestMethod.GET
   headers: [string, string][] = []
   body: string | undefined = undefined
@@ -159,7 +162,7 @@ export class ClientRequest {
 }
 
 class HttpClient {
-  #baseURL = "http://localhost"
+  #baseURL = BASE_API_URL
 
   constructor(baseURL: string) {
     this.#baseURL = baseURL
@@ -193,6 +196,6 @@ class HttpClient {
   }
 }
 
-const Client = new HttpClient("http://localhost:8000")
+const Client = new HttpClient(BASE_API_URL)
 
 export default Client

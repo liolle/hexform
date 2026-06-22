@@ -68,7 +68,7 @@ const RatingStatCard: Component<StatCardProps> = (props) => {
                       name="rating"
                       checked={isStarChecked(idx, 'p1')}
                       value={getStarValue(idx, 'p1')}
-                      class="mask mask-star-2 mask-half-1 bg-primary mk"
+                      class="mask mask-star-2 mask-half-1 bg-primary mk cursor-default"
                     />
                     <input
                       disabled
@@ -76,7 +76,7 @@ const RatingStatCard: Component<StatCardProps> = (props) => {
                       name="rating"
                       checked={isStarChecked(idx, 'p2')}
                       value={getStarValue(idx, 'p2')}
-                      class="mask mask-star-2 mask-half-2 bg-primary mk"
+                      class="mask mask-star-2 mask-half-2 bg-primary mk cursor-default"
                     />
                   </>
                 );
