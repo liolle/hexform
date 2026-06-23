@@ -1,5 +1,4 @@
 import { unwrap } from "solid-js/store"
-import DB, { DBStoreNames } from "./database"
 import AppState from "./state"
 import { SetStore, Store } from "./store"
 
@@ -42,8 +41,10 @@ export class ClientRequest {
   headers: [string, string][] = []
   body: string | undefined = undefined
 
+
   #cachedResponse: ClientResponse | null = null
   #needCache: boolean = false
+  #invalidPaths: string[] = []
 
 
   constructor(url: string, method: RequestMethod) {
@@ -77,6 +78,43 @@ export class ClientRequest {
     return this
   }
 
+  withInvalidation(patterns: string[]): ClientRequest {
+    this.#invalidPaths = patterns
+    if (patterns.length == 0) {
+      return this
+    }
+
+    return this
+  }
+
+  #invalidatePaths() {
+    let regs = this.#invalidPaths.map(v => new RegExp(v))
+
+    SetStore("apiCache", (prev) => {
+      let res: Record<string, CachedRequest> = {}
+
+      for (const key in prev) {
+        let is_match = false
+        for (let i = 0; i < regs.length; i++) {
+          const reg = regs[i];
+          if (reg.test(key)) {
+            is_match = true
+            break
+          }
+        }
+
+        if (is_match) {
+          continue
+        }
+
+        res[key] = prev[key]
+      }
+
+      return res
+    })
+
+  }
+
   withCache(): ClientRequest {
     this.#needCache = true
     return this
@@ -92,7 +130,7 @@ export class ClientRequest {
     let cachedDate = new Date(res.last_modified)
 
     let elapse = now.getTime() - cachedDate.getTime()
-    if (elapse < 60000) {
+    if (elapse < 30000) {
       res.response.cached = true
       this.#cachedResponse = res.response
       return this
@@ -103,6 +141,7 @@ export class ClientRequest {
 
 
   async send(): Promise<ClientResponse> {
+
 
     if (this.#needCache) {
       await this.#checkCache()
@@ -156,6 +195,8 @@ export class ClientRequest {
 
       SetStore("apiCache", key, (prev) => cachedR)
     }
+
+    this.#invalidatePaths()
 
     return result
   }

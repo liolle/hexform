@@ -427,7 +427,7 @@ class State {
         break;
 
       case SurveyQuestionType.NUMBER:
-        let config: NumberConfig = { min: 0, max: 100 }
+        let config: NumberConfig = { min: 0, max: 100, mean: 0 }
         try {
           config = JSON.parse(answer.config) as NumberConfig
         } catch (error) { }
@@ -449,7 +449,7 @@ class State {
         break;
 
       case SurveyQuestionType.RATING:
-        let ratingConfig: NumberConfig = { min: 0, max: 100 }
+        let ratingConfig: NumberConfig = { min: 0, max: 100, mean: 0 }
         try {
           ratingConfig = JSON.parse(answer.config) as NumberConfig
         } catch (error) { }

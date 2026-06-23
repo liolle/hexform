@@ -8,10 +8,13 @@ import { SetStore, Store } from "~/state/store"
 import { SurveyData, SurveyState } from "~/types"
 
 
+const tempQid = new RegExp("TEMP-.*")
+
 const DashboardPanel: Component = () => {
   const navigate = useNavigate()
   let activeSurvey = () => Store.dashboardSurveys?.find(v => v.id == Store.activeDashboardSurveyId)
   let publishing = false
+  let sending = false
 
 
   const openSurveyQuestionModal = () => {
@@ -23,6 +26,51 @@ const DashboardPanel: Component = () => {
     dialog.showModal()
   }
 
+  const SaveSurvey = async () => {
+    if (sending) {
+      return
+    }
+    sending = true
+    let surveyId = Store.activeDashboardSurveyId
+    if (surveyId == "") {
+      sending = false
+      return
+    }
+
+    let questions = Store.surveyQuestions[surveyId] ?? []
+
+
+
+    let qs = questions.map(v => {
+      return {
+        title: v.title,
+        id: tempQid.test(v.id) ? "" : v.id,
+        type: v.type,
+        config: v.config,
+        last_modified: v.last_modified,
+        position: v.position
+      }
+    })
+
+    let res = await SurveyS.updateSurveyQuestion({
+      questions: qs
+    }, surveyId)
+
+    if (res.result.status == 401) {
+
+      AppState.accessToken = ""
+
+      sending = false
+      return
+    }
+
+
+    SetStore("surveyQuestions", surveyId, () => res.result.content["questions"])
+    SurveyS.invalidateSurvey(surveyId)
+
+    sending = false
+  }
+
   const publishSurvey = async () => {
     if (publishing) {
       return
@@ -32,6 +80,9 @@ const DashboardPanel: Component = () => {
       return
     }
     publishing = true
+
+
+    await SaveSurvey()
 
     let response = await SurveyS.publishSurvey(surveyId)
 

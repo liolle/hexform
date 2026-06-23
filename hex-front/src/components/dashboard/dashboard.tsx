@@ -83,20 +83,31 @@ interface SurveysCardProps {
 
 const SurveyCard = (props: SurveysCardProps) => {
   return (
-    <div class=" relative h-24 border-base-100 p-1 border-b-1 rounded-[0.25rem] select-none flex flex-col cursor-pointer hover:bg-base-100"
+    <div class=" relative h-24 border-base-100 p-1 border-b-1 rounded-[0.25rem] select-none flex flex-col cursor-pointer hover:bg-base-100 justify-between"
       onclick={() => AppState.activeDashboardSurveyId = props.data.id}
     >
-      <div class="absolute top-1 right-1 w-6 h-6 rounded-[0.25rem] bg-transparent">
-        <Show when={!props.data.is_public}>
-          <BsLockFill />
-        </Show>
+
+      <div class="max-w-[400px] flex flex-col self-start">
+        <div class="absolute top-1 right-1 w-6 h-6 rounded-[0.25rem] bg-transparent">
+          <Show when={!props.data.is_public}>
+            <BsLockFill />
+          </Show>
+        </div>
+        <div class="max-w-[400px]">
+          <span class="text-content text-sm font-medium"> {props.data.title} </span>
+        </div>
+        <div class="max-w-[400px] wrap-anywhere leading-none">
+          <span class=" text-content text-xs opacity-60"> {props.data.description} </span>
+        </div>
       </div>
-      <div class="max-w-[400px]">
-        <span class="text-content text-sm font-medium"> {props.data.title} </span>
-      </div>
-      <div class="max-w-[400px] wrap-anywhere leading-none">
-        <span class=" text-content text-xs opacity-60"> {props.data.description} </span>
-      </div>
+
+
+      <Show when={props.data.state != SurveyState.CREATED}>
+        <span class="text-primary text-sm font-medium itatlic self-end">
+          published
+        </span>
+      </Show>
+
     </div>
   )
 }

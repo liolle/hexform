@@ -28,6 +28,7 @@ class SurveyService {
       .withHeaders([
         ["Content-Type", "application/json"]
       ]).withAuth()
+      .withCache()
       .send()
 
     return response
@@ -45,6 +46,31 @@ class SurveyService {
     return response
   }
 
+  async getSurveyKeys(surveyId: string): Promise<ClientResponse> {
+
+    let response = await Client.get(`survey/${surveyId}/keys`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+
+      .send()
+
+    return response
+  }
+
+  async getSurveyStats(surveyId: string): Promise<ClientResponse> {
+
+    let response = await Client.get(`survey/${surveyId}/stats`)
+      .withHeaders([
+        ["Content-Type", "application/json"]
+      ]).withAuth()
+      .send()
+
+
+    return response
+  }
+
+
   /* Queries  */
 
   async createSurvey(data: object): Promise<ClientResponse> {
@@ -53,6 +79,11 @@ class SurveyService {
         ["Content-Type", "application/json"]
       ]).withAuth()
       .withBody(data)
+      .withInvalidation([
+        "surveys/created",
+        "surveys/public"
+      ])
+
       .send()
 
     return response
@@ -64,16 +95,28 @@ class SurveyService {
         ["Content-Type", "application/json"]
       ]).withAuth()
       .withBody(data)
+      .withInvalidation([
+        "surveys/created",
+        "surveys/public",
+        `surveys/${surveyId}`,
+      ])
+
       .send()
 
     return response
   }
 
   async deleteSurvey(id: string): Promise<ClientResponse> {
+
     let response = await Client.delete(`surveys/${id}`)
       .withHeaders([
         ["Content-Type", "application/json"]
       ]).withAuth()
+      .withInvalidation([
+        "surveys/created",
+        "surveys/public",
+        `surveys/${id}`,
+      ])
       .send()
 
     return response
@@ -84,22 +127,17 @@ class SurveyService {
       .withHeaders([
         ["Content-Type", "application/json"]
       ]).withAuth()
+      .withInvalidation([
+        "surveys/created",
+        "surveys/public",
+        `surveys/${id}`,
+      ])
       .send()
 
     return response
   }
 
 
-  async getSurveyKeys(surveyId: string): Promise<ClientResponse> {
-
-    let response = await Client.get(`survey/${surveyId}/keys`)
-      .withHeaders([
-        ["Content-Type", "application/json"]
-      ]).withAuth()
-      .send()
-
-    return response
-  }
 
 
   async sendSurvey(surveyId: string, is_preview: boolean, key: string = ""): Promise<boolean> {
@@ -145,6 +183,12 @@ class SurveyService {
         responses: data,
         key: key
       })
+      .withInvalidation([
+        "surveys/created",
+        "surveys/public",
+        `surveys/${surveyId}`,
+      ])
+
       .send()
 
 
@@ -152,21 +196,12 @@ class SurveyService {
     return true
   }
 
-  async getSurveyStats(surveyId: string): Promise<ClientResponse> {
 
-    let response = await Client.get(`survey/${surveyId}/stats`)
-      .withHeaders([
-        ["Content-Type", "application/json"]
-      ]).withAuth()
-      .send()
-
-
-    return response
-  }
 
   /* Invalidate */
 
   async invalidateSurvey(surveyId: string) {
+    return
 
     let createdReg = /surveys\/created/
     let publicReg = /surveys\/public/

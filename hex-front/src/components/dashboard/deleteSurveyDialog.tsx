@@ -1,8 +1,10 @@
-import { Component } from "solid-js"
+import { Component, createEffect, createSignal, onCleanup } from "solid-js"
+import toast, { Toaster } from "solid-toast"
 import { AuthS } from "~/services/services"
 import { SurveyS } from "~/services/surveyService"
+import ToastS from "~/services/toastService"
 import AppState from "~/state/state"
-import { SetStore } from "~/state/store"
+import { SetStore, Store } from "~/state/store"
 
 
 
@@ -20,6 +22,10 @@ const DeleteSurveyDialog: Component = () => {
   }
 
   const handleSubmit = async (del: boolean) => {
+
+
+
+
     try {
 
       if (sending || !del) {
@@ -29,6 +35,7 @@ const DeleteSurveyDialog: Component = () => {
       sending = true
 
       let response = await SurveyS.deleteSurvey(AppState.activeDashboardSurveyId)
+      let survey = Store.dashboardSurveys.find(v => v.id == AppState.activeDashboardSurveyId)
       if (response.result.status == 401) {
 
         AuthS.logout()
@@ -40,6 +47,7 @@ const DeleteSurveyDialog: Component = () => {
       })
 
       AppState.activeDashboardSurveyId = ""
+
 
     } catch (error) {
 

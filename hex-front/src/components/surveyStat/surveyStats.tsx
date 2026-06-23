@@ -41,7 +41,7 @@ const SurveyStatResource: Component<PropsType> = (props) => {
 
     const BASE_URL = import.meta.env.VITE_CLIENT_URL || '';
     let key = keys[0] ?? ""
-    let link = `${BASE_URL}/${props.survey_id}${key == "" ? "" : `?key=${key}`}`
+    let link = `${BASE_URL}/survey/${props.survey_id}${key == "" ? "" : `?key=${key}`}`
     setLink(link)
 
     let stats: QuestionsStat[] = s_stat.stats.map(v => {
