@@ -8,23 +8,6 @@ import { useNavigate } from "@solidjs/router"
 
 
 const PublicSurveys: Component = () => {
-  const navigate = useNavigate()
-  createEffect(async () => {
-    AppState.updatePublicSurveys()
-  })
-
-
-  const participate = () => {
-    let surveyId = Store.activeSurveyId
-    if (!surveyId) {
-      return
-    }
-
-    SurveyS.invalidateSurvey(surveyId)
-    navigate(`/survey/${surveyId}`)
-  }
-
-  let activeSurvey = () => Store.publcSurveys?.find(v => v.id == Store.activeSurveyId)
 
   return (
     <div class="flex-1 p-[16px] pt-0 flex flex-col gap-4">
@@ -39,8 +22,8 @@ const PublicSurveys: Component = () => {
 
 const Surveys = () => {
   return (
-    <div class="flex-1 flex bg-transparent flex flex-col gap-2">
-      <div class="h-fit min-h-screen">
+    <div class="flex-1 flex bg-transparent flex flex-col gap-2 overflow-y-auto">
+      <div class="max-h-[700px]">
         <For each={Store.publcSurveys}>
           {(item, index) =>
             <SurveyCard data={item} />
