@@ -1,33 +1,28 @@
+
 services:
-  hexform-db-dev:
-    container_name: hexform-db-dev 
+  hexform-db:
+    container_name: hexform-db 
     image: postgres:17
     env_file:
-      - dev.env
+      - .env
     networks:
-      - hexform_net_dev
+      - hexform_net
     volumes:
-      - ./database/data/dev:/var/lib/postgresql/data
-    ports:
-      - 5444:5432
-  
+      - ./database/data/staging:/var/lib/postgresql/data
+    
   hexform-api:
     container_name: hexform-api 
     env_file:
-      - dev.env
+      - .env
     networks:
-      - hexform_net_dev
+      - hexform_net
       - caddy_net
     build:
       context: ./
       dockerfile: ./API.Dockerfile
 
-    ports:
-      - 8020:8000
-
-
 networks:
-  hexform_net_dev:
+  hexform_net:
 
   caddy_net:
     external: true

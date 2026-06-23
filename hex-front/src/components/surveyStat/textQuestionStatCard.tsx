@@ -34,7 +34,7 @@ const TextStatCard: Component<StatCardProps> = (props) => {
               {
                 (item, idex) => {
                   return (
-                    <div class="w-32 h-12 border-1 rounded-[.5rem] p-1 border-base-100 flex justify-center items-center">
+                    <div class="w-32 h-12 border-2 rounded-[.5rem] p-1 border-base-100 flex justify-center items-center">
                       <span class="text-xs text-content opacity-60">{item}</span>
                     </div>
                   )

@@ -14,8 +14,8 @@ class Submissions(dbBase):
     __tablename__ = "submissions"
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.id"), nullable=False)
-    survey_id: Mapped[str] = mapped_column(String(48), ForeignKey("surveys.id"), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.id", ondelete="CASCADE",onupdate="CASCADE"), nullable=False)
+    survey_id: Mapped[str] = mapped_column(String(48),ForeignKey("surveys.id",ondelete="CASCADE",onupdate="CASCADE"), nullable=False)
     key_id: Mapped[str] = mapped_column(String(48), ForeignKey("survey_keys.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=datetime.now())
     

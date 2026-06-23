@@ -20,7 +20,7 @@ interface SurveyStatRessourceType {
 const SurveyStats: Component<PropsType> = (props) => {
 
   return (
-    <Suspense fallback={<div>Loading ...</div>}>
+    <Suspense fallback={<div></div>}>
       <SurveyStatResource survey_id={props.survey_id} />
     </Suspense>
   )
@@ -41,7 +41,7 @@ const SurveyStatResource: Component<PropsType> = (props) => {
 
     const BASE_URL = import.meta.env.VITE_CLIENT_URL || '';
     let key = keys[0] ?? ""
-    let link = `${BASE_URL}/${props.survey_id}${key == "" ? "" : `?key=${key}`}`
+    let link = `${BASE_URL}/survey/${props.survey_id}${key == "" ? "" : `?key=${key}`}`
     setLink(link)
 
     let stats: QuestionsStat[] = s_stat.stats.map(v => {
@@ -112,7 +112,7 @@ const SurveyStatResource: Component<PropsType> = (props) => {
             </div>
           </div>
         </div>
-        <div class="stats shadow rounded-[.5rem] border-1 border-base-100  select-none">
+        <div class="stats shadow rounded-[.5rem] border-2 border-base-100  select-none">
           <div class="stat">
             <span class="stat-title">Total Submissions</span>
             <span class="stat-value">{ressource()?.data.submission_count}</span>

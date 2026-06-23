@@ -2,6 +2,7 @@ import { Component, Match, Switch } from "solid-js"
 import { createStore } from "solid-js/store";
 import z from "zod";
 import { SurveyS } from "~/services/surveyService";
+import ToastS from "~/services/toastService";
 import AppState from "~/state/state";
 
 const [errors, setErrors] = createStore({ title: "", description: "", is_public: "" });
@@ -50,12 +51,13 @@ const CreateSurveyDialog: Component = () => {
     setErrors("description", "")
 
     try {
-      let output = Schema.parse(data)
+      Schema.parse(data)
 
-      formRef?.reset()
       await SurveyS.createSurvey(data)
-      AppState.updateDashboardSurveys()
+      await AppState.updateDashboardSurveys()
+      formRef?.reset()
       closeSurveyModal()
+
 
     } catch (error) {
       if (error instanceof z.ZodError) {

@@ -17,6 +17,8 @@ It focuses on:
 
 * Authentication system (user accounts & access control)
 * Survey creation with dynamic question types
+
+
 * Public and private survey sharing via links
 * Response collection and storage
 * Dashboard with survey analytics and statistics
@@ -27,14 +29,21 @@ It focuses on:
 * Frontend: SolidJS
 * Database: Postgresql
 
-## 📸 Demo
+## 📸 Preview
 
-TODO
+* Create survey
+
+    ![](./.github/media/create-publish_400.GIF)
+
+* Complete survey
+
+    ![](./.github/media/complete_400.GIF)
+
+* Review responses
+
+    ![](./.github/media/stats_400.GIF)
 
 ## 🔗 Live Demo
 
 TODO
 
-## ⚙️ Run locally
-
-TODO

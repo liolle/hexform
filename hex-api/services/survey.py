@@ -39,7 +39,7 @@ class SurveyService():
                     "reason":"survey creation failed" 
                 })
 
-    def delete_survey(self, id:str, access_token:str):
+    def delete_survey(self, survey_id:str, access_token:str):
         token_res = verify_token(access_token)
 
         if not token_res.success: 
@@ -50,7 +50,11 @@ class SurveyService():
 
         user_id = token_res.keys["claims"]["id"]
 
-        stm = select(Surveys).where(Surveys.id == id )
+        stm = select(Surveys).where(Surveys.id == survey_id )
+
+        delStm = delete(Surveys).where(
+            Surveys.id == survey_id
+        )
 
         with dbConnection() as con:
             try:
@@ -61,9 +65,10 @@ class SurveyService():
                 if survey.owner_id != user_id :
                     return Result(False,{"reason":"Could not delete the survey", "status_code" : status.HTTP_403_FORBIDDEN })
 
-                con.delete(survey)
+                con.execute(delStm)
                 con.commit()
-            except Exception :
+            except Exception as e :
+                print(e)
                 pass
 
         return Result(True)
@@ -133,7 +138,7 @@ class SurveyService():
                 FROM text_answers,
                 LATERAL regexp_split_to_table(lower(answer_text), '\\s+') AS word
                 WHERE length(word) > 2
-                    AND word NOT IN ('the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by')
+                    AND word NOT IN ('the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'i', 'would','can', 'have')
                 GROUP BY question_id, title, word
             ),
             all_stats AS (
@@ -549,7 +554,6 @@ class SurveyService():
         if not token_res.success: 
             return token_res
 
-        print(token_res)
 
         if not "id" in token_res.keys["claims"]:
             return Result(False,{"reason":"Malformed access token" })

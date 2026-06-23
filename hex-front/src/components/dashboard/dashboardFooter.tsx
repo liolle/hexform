@@ -1,5 +1,6 @@
 import { Component, Match, Show, Switch } from "solid-js"
 import { SurveyS } from "~/services/surveyService"
+import ToastS from "~/services/toastService"
 import DB, { DBStoreNames } from "~/state/database"
 import AppState from "~/state/state"
 import { SetStore, Store } from "~/state/store"
@@ -70,6 +71,8 @@ const DashboardFooter: Component = () => {
 
     SetStore("surveyQuestions", surveyId, () => res.result.content["questions"])
     SurveyS.invalidateSurvey(surveyId)
+
+    ToastS.show_succes("Saved")
 
     sending = false
   }

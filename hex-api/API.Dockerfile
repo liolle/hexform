@@ -22,6 +22,8 @@ COPY alembic.ini .
 COPY alembic ./alembic
 COPY database ./database
 COPY routers ./routers
+COPY dto ./dto
 COPY services ./services
+COPY utils ./utils
 
 CMD sh -c "alembic upgrade head && fastapi run main.py --host 0.0.0.0 --port 8000"

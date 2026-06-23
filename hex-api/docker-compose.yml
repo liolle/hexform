@@ -26,3 +26,6 @@ services:
 
 networks:
   hexform_net:
+
+  caddy_net:
+    external: true
