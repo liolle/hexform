@@ -18,7 +18,7 @@ def login(data:LoginForm,auth:AuthService = Depends(AuthService)):
             detail= res.keys["reason"] 
         )
 
-    return {"token": f"{res.keys["token"] if "token" in res.keys else ""}"}
+    return {"token": f"{res.keys['token'] if 'token' in res.keys else ''}"}
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(data:RegisterForm,auth:AuthService = Depends(AuthService)):

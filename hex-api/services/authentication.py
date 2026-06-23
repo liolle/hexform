@@ -2,14 +2,11 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import  status
 from datetime import datetime, timezone, timedelta
-#from typing import Optional
-#from jose import JWTError, jwt
 
 from jwt.types import Options
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-#from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from database import dbConnection
 from utils import generate_id, Result
 from dotenv import load_dotenv
@@ -26,6 +23,7 @@ from jwt.exceptions import (
 
 import jwt
 
+from dto import LoginForm,RegisterForm
 
 
 import os
@@ -40,9 +38,6 @@ ctx = CryptContext(
     schemes=["sha256_crypt"],
     sha256_crypt__rounds=10000
 )
-
-if TYPE_CHECKING:
-    from dto import LoginForm,RegisterForm
 
 def generate_password(password:str)->str:
     hashed_password = ctx.hash(password)

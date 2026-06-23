@@ -21,7 +21,7 @@ services:
       context: ./
       dockerfile: ./API.Dockerfile
 
-  networks:
+networks:
   hexform_net:
 
   caddy_net:
