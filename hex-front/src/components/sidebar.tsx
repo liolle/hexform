@@ -1,3 +1,4 @@
+import { FiGithub } from "solid-icons/fi"
 import { createSignal, Switch, Match } from "solid-js"
 import AppState from "~/state/state"
 import { HomeTabType, Store } from "~/state/store"
@@ -6,9 +7,19 @@ import { HomeTabType, Store } from "~/state/store"
 const Sidebar = () => {
 
   return (
-    <div class="w-[256px] p-4 h-full py-[20px] flex flex-col gap-4 border-r border-base-100">
-      <SidebarButton tab={HomeTabType.DASHBOARD} />
-      <SidebarButton tab={HomeTabType.SURVEYS} />
+    <div class="w-[256px] p-4 h-full py-[20px] flex flex-col justify-between  border-r border-base-100">
+      <div class="flex flex-col gap-4">
+        <SidebarButton tab={HomeTabType.DASHBOARD} />
+        <SidebarButton tab={HomeTabType.SURVEYS} />
+      </div>
+      <button
+        onclick={() => open("https://github.com/liolle/hexform")}
+        class="btn btn-secondary btn-dash rounded-[.5rem] w-fit flex gap-4 justify-start items-center select-none text-content">
+        <FiGithub />
+        <span class="text-md italic opacity-60">
+          hexform
+        </span>
+      </button>
     </div>
   )
 }

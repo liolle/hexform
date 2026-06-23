@@ -39,17 +39,17 @@ const NumberStatCard: Component<StatCardProps> = (props) => {
         <div class="h-[100px] flex flex-col gap-2">
           <div class=" flex gap-2 p-1">
 
-            <div class={`w-32 h-16 border-1 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center `}>
+            <div class={`w-32 h-16 border-2 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center `}>
               <span class="text-xs text-content opacity-60">Min</span>
               <span class="text-xs text-content font-bold">{config().min}</span>
             </div>
 
-            <div class={`w-32 h-16 border-1 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary `}>
+            <div class={`w-32 h-16 border-2 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary `}>
               <span class="text-xs text-content opacity-60">Max</span>
               <span class="text-xs text-content font-bold">{config().max}</span>
             </div>
 
-            <div class={`w-32 h-16 border-1 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary `}>
+            <div class={`w-32 h-16 border-2 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary `}>
               <span class="text-xs text-content opacity-60">Avegare</span>
               <span class="text-xs text-content font-bold">{config().avg}</span>
             </div>

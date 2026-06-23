@@ -51,12 +51,12 @@ const BooleanStatCard: Component<StatCardProps> = (props) => {
         <div class="flex  h-24 flex items-center max-w-[calc(100vw-360px)] overflow-auto  ">
           <div class=" flex gap-2 p-1">
 
-            <div class={`w-32 h-16 border-1 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary ${trueValue() > 50 ? "outline-1" : ""}`}>
+            <div class={`w-32 h-16 border-2 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary ${trueValue() > 50 ? "outline-2" : ""}`}>
               <span class="text-xs text-content opacity-60">{config().trueLabel}</span>
               <span class="text-xs text-content font-bold">{`${trueValue()}%`}</span>
             </div>
 
-            <div class={`w-32 h-16 border-1 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary ${trueValue() < 50 ? "outline-1" : ""}`}>
+            <div class={`w-32 h-16 border-2 rounded-[.5rem] p-1 border-base-100 flex flex-col justify-center items-center outline-primary ${trueValue() < 50 ? "outline-2" : ""}`}>
               <span class="text-xs text-content opacity-60">{config().falseLabel}</span>
               <span class="text-xs text-content font-bold ">{`${100 - trueValue()}%`}</span>
             </div>

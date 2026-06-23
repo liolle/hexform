@@ -10,7 +10,7 @@ const App: Component = (props: AppProps) => {
 
   return (
 
-    <Suspense fallback={<div>Loading your data...</div>}>
+    <Suspense fallback={<div class="bg-base-300"></div>}>
       {storeReady() && (
         <>
           {props.children}
